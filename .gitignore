@@ -14,6 +14,7 @@
 # Code coverage profiles and other test artifacts
 *.out
 coverage.*
+coverage/
 *.coverprofile
 profile.cov
 
@@ -46,6 +47,14 @@ yarn-error.log
 !.yarn/sdks
 !.yarn/versions
 .pnp.*
+
+# .NET bridge/tooling build artifacts
+proton-sdk-service/tools/**/obj/
+proton-sdk-service/tools/**/bin/
+proton-sdk-service/tools/**/TestResults/
+proton-sdk-service/tools/**/.vs/
+proton-sdk-service/tools/**/*.user
+proton-sdk-service/tools/**/*.suo
 
 # Editor files
 *.swp
