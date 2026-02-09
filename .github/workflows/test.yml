@@ -1,0 +1,179 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go-test:
+    name: Go tests
+    runs-on: ubuntu-latest
+    env:
+      PROTON_PASS_REF_ROOT: pass://Personal/Proton Git LFS
+      PROTON_PASS_USERNAME_REF: pass://Personal/Proton Git LFS/username
+      PROTON_PASS_PASSWORD_REF: pass://Personal/Proton Git LFS/password
+      PROTON_USERNAME: ""
+      PROTON_PASSWORD: ""
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run adapter tests with coverage
+        run: |
+          go test -race -coverprofile=coverage.out ./cmd/adapter/...
+          go tool cover -func=coverage.out | tail -n 1
+
+      - name: Upload Go coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage
+          path: coverage.out
+          retention-days: 7
+
+  integration-timeout:
+    name: Integration timeout semantics (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install git-lfs (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-lfs
+
+      - name: Install git-lfs (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install git-lfs
+
+      - name: Install git-lfs (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install git-lfs -y
+
+      - name: Verify git-lfs
+        shell: bash
+        run: |
+          git lfs version
+
+      - name: Run timeout semantics integration tests
+        shell: bash
+        run: |
+          mkdir -p .cache/go-build
+          GOCACHE="$PWD/.cache/go-build" go test -tags integration ./tests/integration/... -run '^TestGitLFSCustomTransferTimeout' -v
+
+  integration-stress:
+    name: Integration concurrency stress (ubuntu)
+    runs-on: ubuntu-latest
+    env:
+      PROTON_LFS_STRESS_FILE_COUNT: "16"
+      PROTON_LFS_STRESS_ROUNDS: "2"
+      PROTON_LFS_STRESS_CONCURRENCY: "8"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install git-lfs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-lfs
+
+      - name: Verify git-lfs
+        shell: bash
+        run: |
+          git lfs version
+
+      - name: Run concurrency stress/soak integration test
+        shell: bash
+        run: |
+          mkdir -p .cache/go-build
+          GOCACHE="$PWD/.cache/go-build" go test -tags integration ./tests/integration/... -run '^TestGitLFSCustomTransferConcurrentStressSoak$' -v
+
+  sdk-integration-pass:
+    name: SDK integration (pass refs)
+    runs-on: ubuntu-latest
+    env:
+      PROTON_PASS_REF_ROOT: pass://Personal/Proton Git LFS
+      PROTON_PASS_USERNAME_REF: pass://Personal/Proton Git LFS/username
+      PROTON_PASS_PASSWORD_REF: pass://Personal/Proton Git LFS/password
+      PROTON_USERNAME: ""
+      PROTON_PASSWORD: ""
+      PASS_MOCK_USERNAME: integration-user@proton.test
+      PASS_MOCK_PASSWORD: integration-password
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+
+      - name: Install git-lfs and pass-cli dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-lfs jq curl
+          git lfs version
+
+      - name: Install pass-cli
+        run: |
+          curl -fsSL https://proton.me/download/pass-cli/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/pass-cli" --version
+
+      - name: Enable Corepack and install workspace dependencies
+        run: |
+          corepack enable
+          corepack prepare yarn@4.1.1 --activate
+          yarn --version
+          yarn install
+
+      - name: Run SDK integration test with pass references only
+        env:
+          PROTON_PASS_CLI_BIN: ${{ github.workspace }}/scripts/mock-pass-cli.sh
+        run: |
+          chmod +x scripts/mock-pass-cli.sh
+          go test -tags integration ./tests/integration/... -run SDK -v

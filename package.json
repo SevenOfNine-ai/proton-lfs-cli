@@ -1,0 +1,9 @@
+{
+  "name": "proton-git-lfs",
+  "private": true,
+  "description": "Workspace root for proton git lfs backend",
+  "packageManager": "yarn@4.1.1",
+  "workspaces": [
+    "proton-sdk-service"
+  ]
+}

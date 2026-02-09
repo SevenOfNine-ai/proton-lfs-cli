@@ -1,0 +1,412 @@
+{
+  "format": 1,
+  "restore": {
+    "/Users/sevenofnine/Workspace/proton-git-lfs/proton-sdk-service/tools/proton-real-bridge/ProtonRealBridge.csproj": {}
+  },
+  "projects": {
+    "/Users/sevenofnine/Workspace/proton-git-lfs/proton-sdk-service/tools/proton-real-bridge/ProtonRealBridge.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/sevenofnine/Workspace/proton-git-lfs/proton-sdk-service/tools/proton-real-bridge/ProtonRealBridge.csproj",
+        "projectName": "ProtonRealBridge",
+        "projectPath": "/Users/sevenofnine/Workspace/proton-git-lfs/proton-sdk-service/tools/proton-real-bridge/ProtonRealBridge.csproj",
+        "packagesPath": "/Users/sevenofnine/.nuget/packages/",
+        "outputPath": "/Users/sevenofnine/Workspace/proton-git-lfs/proton-sdk-service/tools/proton-real-bridge/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/sevenofnine/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "/opt/homebrew/Cellar/dotnet/10.0.102/libexec/library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {
+              "/Users/sevenofnine/Workspace/proton-git-lfs/submodules/sdk/cs/sdk/src/Proton.Drive.Sdk/Proton.Drive.Sdk.csproj": {
+                "projectPath": "/Users/sevenofnine/Workspace/proton-git-lfs/submodules/sdk/cs/sdk/src/Proton.Drive.Sdk/Proton.Drive.Sdk.csproj"
+              },
+              "/Users/sevenofnine/Workspace/proton-git-lfs/submodules/sdk/cs/sdk/src/Proton.Sdk/Proton.Sdk.csproj": {
+                "projectPath": "/Users/sevenofnine/Workspace/proton-git-lfs/submodules/sdk/cs/sdk/src/Proton.Sdk/Proton.Sdk.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "10.0.100"
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[9.0.12, 9.0.12]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Host.osx-arm64",
+              "version": "[9.0.12, 9.0.12]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[9.0.12, 9.0.12]"
+            }
+          ],
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet/10.0.102/libexec/sdk/10.0.102/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/Users/sevenofnine/Workspace/proton-git-lfs/submodules/sdk/cs/sdk/src/Proton.Drive.Sdk/Proton.Drive.Sdk.csproj": {
+      "version": "0.0.1",
+      "restore": {
+        "projectUniqueName": "/Users/sevenofnine/Workspace/proton-git-lfs/submodules/sdk/cs/sdk/src/Proton.Drive.Sdk/Proton.Drive.Sdk.csproj",
+        "projectName": "Proton.Drive.Sdk",
+        "projectPath": "/Users/sevenofnine/Workspace/proton-git-lfs/submodules/sdk/cs/sdk/src/Proton.Drive.Sdk/Proton.Drive.Sdk.csproj",
+        "packagesPath": "/Users/sevenofnine/.nuget/packages/",
+        "outputPath": "/Users/sevenofnine/Workspace/proton-git-lfs/submodules/sdk/cs/sdk/src/Proton.Drive.Sdk/obj/",
+        "projectStyle": "PackageReference",
+        "centralPackageVersionsManagementEnabled": true,
+        "configFilePaths": [
+          "/Users/sevenofnine/Workspace/proton-git-lfs/submodules/sdk/cs/NuGet.Config",
+          "/Users/sevenofnine/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "/opt/homebrew/Cellar/dotnet/10.0.102/libexec/library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {
+              "/Users/sevenofnine/Workspace/proton-git-lfs/submodules/sdk/cs/sdk/src/Proton.Sdk/Proton.Sdk.csproj": {
+                "projectPath": "/Users/sevenofnine/Workspace/proton-git-lfs/submodules/sdk/cs/sdk/src/Proton.Sdk/Proton.Sdk.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "allWarningsAsErrors": true,
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "10.0.100"
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "dependencies": {
+            "Microsoft.IO.RecyclableMemoryStream": {
+              "target": "Package",
+              "version": "[3.0.1, )",
+              "versionCentrallyManaged": true
+            },
+            "Polly": {
+              "target": "Package",
+              "version": "[8.6.5, )",
+              "versionCentrallyManaged": true
+            },
+            "Proton.Cryptography": {
+              "suppressParent": "Compile",
+              "target": "Package",
+              "version": "[0.24.0, )",
+              "versionCentrallyManaged": true
+            },
+            "Roslynator.Analyzers": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[4.15.0, )",
+              "versionCentrallyManaged": true
+            },
+            "SonarAnalyzer.CSharp": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[10.18.0.131500, )",
+              "versionCentrallyManaged": true
+            },
+            "StyleCop.Analyzers": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[1.2.0-beta.556, )",
+              "versionCentrallyManaged": true
+            },
+            "System.Numerics.Tensors": {
+              "target": "Package",
+              "version": "[9.0.10, )",
+              "versionCentrallyManaged": true
+            }
+          },
+          "centralPackageVersions": {
+            "AwesomeAssertions": "9.2.1",
+            "BenchmarkDotNet": "0.15.8",
+            "coverlet.collector": "6.0.4",
+            "Google.Protobuf": "3.33.4",
+            "Grpc.Tools": "2.76.0",
+            "Microsoft.Data.Sqlite": "9.0.10",
+            "Microsoft.Data.Sqlite.Core": "9.0.10",
+            "Microsoft.Extensions.Caching.Memory": "9.0.10",
+            "Microsoft.Extensions.Configuration": "9.0.10",
+            "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.10",
+            "Microsoft.Extensions.Http": "9.0.10",
+            "Microsoft.Extensions.Http.Resilience": "9.10.0",
+            "Microsoft.IO.RecyclableMemoryStream": "3.0.1",
+            "morelinq": "4.4.0",
+            "NSubstitute": "5.3.0",
+            "NSubstitute.Analyzers.CSharp": "1.0.17",
+            "Polly": "8.6.5",
+            "Proton.Cryptography": "0.24.0",
+            "Roslynator.Analyzers": "4.15.0",
+            "Serilog.Extensions.Logging": "10.0.0",
+            "Serilog.Sinks.Console": "6.1.1",
+            "Serilog.Sinks.File": "7.0.0",
+            "SkiaSharp": "3.119.1",
+            "SkiaSharp.NativeAssets.Linux": "3.119.1",
+            "SonarAnalyzer.CSharp": "10.18.0.131500",
+            "Spectre.Console": "0.54.0",
+            "Spectre.Console.Analyzer": "1.0.0",
+            "SQLitePCLRaw.bundle_sqlite3": "2.1.10",
+            "StyleCop.Analyzers": "1.2.0-beta.556",
+            "System.CommandLine": "2.0.0-rc.2.25502.107",
+            "System.Linq.Async": "6.0.3",
+            "System.Numerics.Tensors": "9.0.10",
+            "xunit.v3": "3.1.0"
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[9.0.12, 9.0.12]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[9.0.12, 9.0.12]"
+            }
+          ],
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet/10.0.102/libexec/sdk/10.0.102/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/Users/sevenofnine/Workspace/proton-git-lfs/submodules/sdk/cs/sdk/src/Proton.Sdk/Proton.Sdk.csproj": {
+      "version": "0.0.1",
+      "restore": {
+        "projectUniqueName": "/Users/sevenofnine/Workspace/proton-git-lfs/submodules/sdk/cs/sdk/src/Proton.Sdk/Proton.Sdk.csproj",
+        "projectName": "Proton.Sdk",
+        "projectPath": "/Users/sevenofnine/Workspace/proton-git-lfs/submodules/sdk/cs/sdk/src/Proton.Sdk/Proton.Sdk.csproj",
+        "packagesPath": "/Users/sevenofnine/.nuget/packages/",
+        "outputPath": "/Users/sevenofnine/Workspace/proton-git-lfs/submodules/sdk/cs/sdk/src/Proton.Sdk/obj/",
+        "projectStyle": "PackageReference",
+        "centralPackageVersionsManagementEnabled": true,
+        "configFilePaths": [
+          "/Users/sevenofnine/Workspace/proton-git-lfs/submodules/sdk/cs/NuGet.Config",
+          "/Users/sevenofnine/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "/opt/homebrew/Cellar/dotnet/10.0.102/libexec/library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "allWarningsAsErrors": true,
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "10.0.100"
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "dependencies": {
+            "Microsoft.Data.Sqlite": {
+              "target": "Package",
+              "version": "[9.0.10, )",
+              "versionCentrallyManaged": true
+            },
+            "Microsoft.Extensions.Caching.Memory": {
+              "target": "Package",
+              "version": "[9.0.10, )",
+              "versionCentrallyManaged": true
+            },
+            "Microsoft.Extensions.DependencyInjection.Abstractions": {
+              "target": "Package",
+              "version": "[9.0.10, )",
+              "versionCentrallyManaged": true
+            },
+            "Microsoft.Extensions.Http": {
+              "target": "Package",
+              "version": "[9.0.10, )",
+              "versionCentrallyManaged": true
+            },
+            "Microsoft.Extensions.Http.Resilience": {
+              "target": "Package",
+              "version": "[9.10.0, )",
+              "versionCentrallyManaged": true
+            },
+            "Proton.Cryptography": {
+              "suppressParent": "Compile",
+              "target": "Package",
+              "version": "[0.24.0, )",
+              "versionCentrallyManaged": true
+            },
+            "Roslynator.Analyzers": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[4.15.0, )",
+              "versionCentrallyManaged": true
+            },
+            "SonarAnalyzer.CSharp": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[10.18.0.131500, )",
+              "versionCentrallyManaged": true
+            },
+            "StyleCop.Analyzers": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[1.2.0-beta.556, )",
+              "versionCentrallyManaged": true
+            },
+            "System.Linq.Async": {
+              "target": "Package",
+              "version": "[6.0.3, )",
+              "versionCentrallyManaged": true
+            }
+          },
+          "centralPackageVersions": {
+            "AwesomeAssertions": "9.2.1",
+            "BenchmarkDotNet": "0.15.8",
+            "coverlet.collector": "6.0.4",
+            "Google.Protobuf": "3.33.4",
+            "Grpc.Tools": "2.76.0",
+            "Microsoft.Data.Sqlite": "9.0.10",
+            "Microsoft.Data.Sqlite.Core": "9.0.10",
+            "Microsoft.Extensions.Caching.Memory": "9.0.10",
+            "Microsoft.Extensions.Configuration": "9.0.10",
+            "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.10",
+            "Microsoft.Extensions.Http": "9.0.10",
+            "Microsoft.Extensions.Http.Resilience": "9.10.0",
+            "Microsoft.IO.RecyclableMemoryStream": "3.0.1",
+            "morelinq": "4.4.0",
+            "NSubstitute": "5.3.0",
+            "NSubstitute.Analyzers.CSharp": "1.0.17",
+            "Polly": "8.6.5",
+            "Proton.Cryptography": "0.24.0",
+            "Roslynator.Analyzers": "4.15.0",
+            "Serilog.Extensions.Logging": "10.0.0",
+            "Serilog.Sinks.Console": "6.1.1",
+            "Serilog.Sinks.File": "7.0.0",
+            "SkiaSharp": "3.119.1",
+            "SkiaSharp.NativeAssets.Linux": "3.119.1",
+            "SonarAnalyzer.CSharp": "10.18.0.131500",
+            "Spectre.Console": "0.54.0",
+            "Spectre.Console.Analyzer": "1.0.0",
+            "SQLitePCLRaw.bundle_sqlite3": "2.1.10",
+            "StyleCop.Analyzers": "1.2.0-beta.556",
+            "System.CommandLine": "2.0.0-rc.2.25502.107",
+            "System.Linq.Async": "6.0.3",
+            "System.Numerics.Tensors": "9.0.10",
+            "xunit.v3": "3.1.0"
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[9.0.12, 9.0.12]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[9.0.12, 9.0.12]"
+            }
+          ],
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet/10.0.102/libexec/sdk/10.0.102/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
