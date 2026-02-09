@@ -116,7 +116,7 @@ For every module/package, implement:
    - Examples:
      - Adapter ↔ SDK service API calls
      - Session management with file operations
-   - Location: `tests/integration/` (documented in `docs/integration-testing.md`)
+   - Location: `tests/integration/` (documented in `docs/testing/integration-testing.md`)
 
 3. **End-to-End Tests** (10% of tests)
    - Test complete workflows through all layers
@@ -127,7 +127,7 @@ For every module/package, implement:
      - Full push/pull workflow
      - Concurrent file transfers
      - Error recovery and retries
-   - Location: `tests/e2e/` (documented in `docs/integration-testing.md`)
+   - Location: `tests/e2e/` (documented in `docs/testing/integration-testing.md`)
 
 ### Test Requirements by Phase
 

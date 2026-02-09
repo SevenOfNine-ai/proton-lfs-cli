@@ -17,12 +17,14 @@ It does not implement a full Git LFS HTTP server (`/objects/batch`, basic transf
 ## Data Flow
 
 Upload:
+
 1. Git LFS sends `upload` event to adapter.
 2. Adapter validates `oid`/`size`/`path`.
 3. Adapter calls selected backend.
 4. Adapter emits `complete` or `complete.error`.
 
 Download:
+
 1. Git LFS sends `download` event to adapter.
 2. Adapter resolves object by `oid`.
 3. Backend materializes file to local path.

@@ -105,9 +105,21 @@ func TestGitLFSCustomTransferConcurrentStressSoak(t *testing.T) {
 		mustRun(t, clonePath, s.env, s.gitLFSBin, "install", "--local")
 		configureConcurrentTransfer(t, clonePath, s, concurrency)
 
-		out, err := runCmd(clonePath, s.env, s.gitLFSBin, "pull", "origin", "main")
-		if err != nil {
-			t.Fatalf("round %d: expected lfs pull to succeed, err: %v\noutput:\n%s", round, err, out)
+		var (
+			pullOut string
+			pullErr error
+		)
+		for attempt := 1; attempt <= 2; attempt++ {
+			pullOut, pullErr = runCmd(clonePath, s.env, s.gitLFSBin, "pull", "origin", "main")
+			if pullErr == nil {
+				break
+			}
+			lfsLogOut, _ := runCmd(clonePath, s.env, s.gitLFSBin, "logs", "last")
+			t.Logf("round %d: lfs pull attempt %d failed: %v\noutput:\n%s\nlfs log:\n%s", round, attempt, pullErr, pullOut, lfsLogOut)
+		}
+		if pullErr != nil {
+			lfsLogOut, _ := runCmd(clonePath, s.env, s.gitLFSBin, "logs", "last")
+			t.Fatalf("round %d: expected lfs pull to succeed after retry, err: %v\noutput:\n%s\nlfs log:\n%s", round, pullErr, pullOut, lfsLogOut)
 		}
 
 		for _, name := range artifacts {

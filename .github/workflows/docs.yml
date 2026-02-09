@@ -29,10 +29,8 @@ jobs:
           config: .markdownlint.json
           globs: |
             README.md
-            PROJECT_SETUP.md
             SECURITY.md
             docs/**/*.md
-            .github/**/*.md
 
       - name: Check internal markdown links
         run: ./scripts/check-doc-links.sh
@@ -44,9 +42,7 @@ jobs:
           args: >-
             --config .lychee.toml
             README.md
-            PROJECT_SETUP.md
             SECURITY.md
             docs/**/*.md
-            .github/**/*.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

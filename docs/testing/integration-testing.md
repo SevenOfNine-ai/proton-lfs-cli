@@ -59,6 +59,7 @@ make test-integration-sdk
 If this fails during `/init` with `proton bridge command failed (exit 1)`, read the embedded SDK service logs in the test output and fix the reported `dotnet restore/build` issue first.
 If you cannot access internal Proton NuGet feeds, do not use in-repo `SDK_BACKEND_MODE=real` build path.
 Use one of:
+
 - External real service: set `PROTON_SDK_SERVICE_URL` and run `make test-integration-sdk-real`.
 - Prebuilt bridge binary from a trusted internal build: set `PROTON_REAL_BRIDGE_BIN`.
 See `docs/architecture/sdk-capability-matrix.md` for the full environment matrix.
@@ -73,23 +74,24 @@ Optional (accounts requiring explicit data password or 2FA):
 If you are testing with a personal Proton account and do not have internal Proton NuGet access, use this flow:
 
 1. Store credentials in Proton Pass.
-2. Use the default references:
+1. Use the default references:
    - `pass://Personal/Proton Git LFS/username`
    - `pass://Personal/Proton Git LFS/password`
-3. Or export custom references before tests:
+1. Or export custom references before tests:
 
 ```bash
 eval "$(./scripts/export-pass-env.sh --ref-root 'pass://Personal/Your Entry')"
 ```
 
-4. Authenticate and run prerequisite checks:
+1. Authenticate and run prerequisite checks:
 
 ```bash
 pass-cli login
 make check-sdk-prereqs
 ```
 
-5. Choose one runtime path:
+1. Choose one runtime path:
+
    - Local prototype path (no real Proton backend): `make test-integration-sdk`
    - Real backend via external service: set `PROTON_SDK_SERVICE_URL` and run `make test-integration-sdk-real`
    - Real backend via trusted prebuilt bridge binary: set `SDK_BACKEND_MODE=real` and `PROTON_REAL_BRIDGE_BIN`, then run `make test-integration-sdk`
