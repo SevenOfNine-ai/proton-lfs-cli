@@ -4,10 +4,10 @@
  * Handles file upload/download with encryption/decryption
  * Phase 4: Integrate with actual Proton SDK for encryption
  * 
- * File organization:
+ * File organization (Git LFS spec layout):
  * - Root folder: LFS (configurable)
- * - Organization: LFS/{OID[0:2]}/{OID[2:]} (hierarchical by OID prefix)
- * - Example: LFS/00/abc123def456...
+ * - Organization: LFS/{OID[0:2]}/{OID[2:4]}/{OID} (3-level hierarchy)
+ * - Example: LFS/00/ab/00abc123def456...
  */
 
 const fs = require('fs');
@@ -23,16 +23,16 @@ const STORAGE_ROOT = config.SDK_STORAGE_DIR;
 
 /**
  * Get the Proton Drive path for a given OID
- * Organizes files hierarchically: LFS/00/abc123... where 00 is OID prefix
+ * Organizes files hierarchically: LFS/4d/7a/4d7a2146... (Git LFS spec layout)
  */
 function getProtonDrivePath(oid) {
-  if (!oid || oid.length < 2) {
+  if (!oid || oid.length < 4) {
     throw new Error('Invalid OID format');
   }
-  
+
   const prefix = oid.substr(0, 2);
-  const suffix = oid.substr(2);
-  return `${STORAGE_BASE}/${prefix}/${suffix}`;
+  const second = oid.substr(2, 2);
+  return `${STORAGE_BASE}/${prefix}/${second}/${oid}`;
 }
 
 /**
@@ -40,13 +40,13 @@ function getProtonDrivePath(oid) {
  * This is a stand-in for real Proton Drive persistence.
  */
 function getLocalObjectPath(oid) {
-  if (!oid || oid.length < 2) {
+  if (!oid || oid.length < 4) {
     throw new Error('Invalid OID format');
   }
 
   const prefix = oid.substr(0, 2);
-  const suffix = oid.substr(2);
-  return path.join(STORAGE_ROOT, prefix, suffix);
+  const second = oid.substr(2, 2);
+  return path.join(STORAGE_ROOT, prefix, second, oid);
 }
 
 /**

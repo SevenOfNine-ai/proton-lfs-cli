@@ -22,6 +22,7 @@
 **Risk**: Malicious OID or file path with shell metacharacters could execute arbitrary commands.
 
 **Mitigations**:
+
 - `spawn()` with array arguments (not shell string) — no shell interpretation
 - OID validated against `/^[a-f0-9]{64}$/i` before subprocess spawn
 - File paths validated against `..` traversal before use
@@ -31,10 +32,14 @@
 
 ### 2. Credential Exposure
 
-**Risk**: Credentials visible in process list, logs, or error messages.
+**Risk**: Credentials visible in process list, logs, or on disk.
 
 **Mitigations**:
+
 - Credentials passed via stdin to subprocess (not visible in `ps aux`)
+- Credential flow: pass-cli -> Go adapter -> stdin -> proton-drive-cli (memory only)
+- **Passwords are never persisted to disk** — `saveSession()` strips `mailboxPassword` before writing
+- Session file (`~/.proton-drive-cli/session.json`) contains only revocable tokens (sessionId, accessToken, refreshToken)
 - Error messages sanitized — no credential values in responses
 - Session tokens stored with 0600 permissions in `~/.proton-drive-cli/`
 - Pass-cli references used instead of plaintext env vars
@@ -46,6 +51,7 @@
 **Risk**: Malicious paths like `../../etc/passwd` could read/write arbitrary files.
 
 **Mitigations**:
+
 - `path.normalize()` check for `..` sequences in `protonDriveBridge.js`
 - OID-to-path conversion uses only validated hex characters
 - Download output paths validated before use
@@ -55,6 +61,7 @@
 **Risk**: Unlimited subprocess spawns consuming all system resources.
 
 **Mitigations**:
+
 - Subprocess pool limit: maximum 10 concurrent operations
 - Per-operation timeout: 5 minutes (configurable)
 - Process killed on timeout (SIGKILL)
@@ -66,9 +73,11 @@
 **Risk**: Session file readable by other users on shared systems.
 
 **Mitigations**:
-- Session file at `~/.proton-drive-cli/session.json`
+
+- Session file at `~/.proton-drive-cli/session.json` contains only revocable tokens (no passwords)
 - File permissions should be 0600 (owner read-write only)
 - Session stored in user home directory, not shared locations
+- Tokens can be revoked server-side via `proton-drive logout`
 
 **Validation**: `TestCredentialSessionFilePermissions` in integration tests
 
@@ -77,6 +86,7 @@
 **Risk**: Man-in-the-middle attack on Proton API communication.
 
 **Mitigations**:
+
 - All Proton API calls use HTTPS (TLS)
 - SRP authentication — password never sent to server
 - E2E encryption — file contents encrypted client-side before upload

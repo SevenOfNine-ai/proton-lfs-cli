@@ -141,7 +141,7 @@ exit 42
 		t.Fatalf("expected git push to fail when adapter exits non-zero, output:\n%s", out)
 	}
 
-	storedPath := filepath.Join(s.storePath, oid[:2], oid[2:])
+	storedPath := filepath.Join(s.storePath, oid[:2], oid[2:4], oid)
 	if _, statErr := os.Stat(storedPath); statErr == nil {
 		t.Fatalf("did not expect object to be stored after adapter crash: %s", storedPath)
 	}

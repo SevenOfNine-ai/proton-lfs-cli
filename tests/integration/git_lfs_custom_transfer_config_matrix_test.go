@@ -53,7 +53,7 @@ func TestGitLFSCustomTransferDirectionUploadOnlyAllowsPushAndRejectsPull(t *test
 	mustRun(t, s.repoPath, s.env, s.gitBin, "push", "origin", "main")
 	mustRun(t, s.repoPath, s.env, s.gitLFSBin, "push", "origin", "main")
 
-	storedPath := filepath.Join(s.storePath, oid[:2], oid[2:])
+	storedPath := filepath.Join(s.storePath, oid[:2], oid[2:4], oid)
 	if _, err := os.Stat(storedPath); err != nil {
 		t.Fatalf("expected uploaded object in local store, path=%s err=%v", storedPath, err)
 	}
@@ -87,7 +87,7 @@ func TestGitLFSCustomTransferDirectionDownloadOnlyRejectsPush(t *testing.T) {
 		t.Fatalf("expected explicit push failure output, got:\n%s", out)
 	}
 
-	storedPath := filepath.Join(s.storePath, oid[:2], oid[2:])
+	storedPath := filepath.Join(s.storePath, oid[:2], oid[2:4], oid)
 	if _, statErr := os.Stat(storedPath); statErr == nil {
 		t.Fatalf("did not expect uploaded object after download-only push failure: %s", storedPath)
 	}

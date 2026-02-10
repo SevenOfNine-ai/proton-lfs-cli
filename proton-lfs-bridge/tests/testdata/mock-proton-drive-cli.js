@@ -58,8 +58,8 @@ if (process.env.MOCK_BRIDGE_HANG === '1') {
 
 function storagePath(oid) {
   const prefix = String(oid).slice(0, 2);
-  const suffix = String(oid).slice(2);
-  return path.join(STORAGE_DIR, prefix, suffix);
+  const second = String(oid).slice(2, 4);
+  return path.join(STORAGE_DIR, prefix, second, String(oid));
 }
 
 if (command === 'auth') {
@@ -98,7 +98,7 @@ if (command === 'upload') {
       fileId: 'mock-file-id',
       revisionId: 'mock-revision-id',
       uploaded: true,
-      location: `${request.storageBase}/${String(request.oid).slice(0, 2)}/${String(request.oid).slice(2)}`
+      location: `${request.storageBase}/${String(request.oid).slice(0, 2)}/${String(request.oid).slice(2, 4)}/${String(request.oid)}`
     }
   });
 }

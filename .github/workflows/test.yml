@@ -150,7 +150,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "yarn"
 
       - name: Install git-lfs and pass-cli dependencies
         run: |
@@ -190,7 +189,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "yarn"
 
       - name: Enable Corepack and install dependencies
         run: |
@@ -226,7 +224,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "yarn"
 
       - name: Install git-lfs
         run: |
@@ -274,7 +271,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "yarn"
 
       - name: Install git-lfs
         run: |

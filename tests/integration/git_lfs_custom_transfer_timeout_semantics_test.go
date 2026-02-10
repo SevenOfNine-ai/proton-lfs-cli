@@ -83,7 +83,7 @@ func TestGitLFSCustomTransferTimeoutUploadFailsFastOnStall(t *testing.T) {
 	out, err := runCmd(s.repoPath, s.env, s.gitBin, "push", "origin", "main")
 	assertTimeoutFailure(t, out, err, time.Since(start), "git push")
 
-	storedPath := filepath.Join(s.storePath, oid[:2], oid[2:])
+	storedPath := filepath.Join(s.storePath, oid[:2], oid[2:4], oid)
 	if _, statErr := os.Stat(storedPath); statErr == nil {
 		t.Fatalf("did not expect object to be stored after stalled upload: %s", storedPath)
 	}

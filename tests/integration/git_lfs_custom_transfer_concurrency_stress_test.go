@@ -92,7 +92,7 @@ func TestGitLFSCustomTransferConcurrentStressSoak(t *testing.T) {
 			if len(oid) != 64 {
 				t.Fatalf("expected 64-char oid for %s in round %d, got %q", name, round, oid)
 			}
-			storedPath := filepath.Join(s.storePath, oid[:2], oid[2:])
+			storedPath := filepath.Join(s.storePath, oid[:2], oid[2:4], oid)
 			if _, err := os.Stat(storedPath); err != nil {
 				t.Fatalf("expected stored object for %s round %d at %s: %v", name, round, storedPath, err)
 			}

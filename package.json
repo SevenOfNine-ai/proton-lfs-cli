@@ -6,5 +6,6 @@
   "workspaces": [
     "proton-lfs-bridge",
     "submodules/proton-drive-cli"
-  ]
+  ],
+  "version": ""
 }

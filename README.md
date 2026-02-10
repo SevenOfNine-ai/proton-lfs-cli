@@ -21,6 +21,10 @@ Pre-alpha Git LFS custom transfer backend for Proton Drive.
 
 No .NET SDK required.
 
+## Usage
+
+See **[USAGE.md](USAGE.md)** for the complete user guide — installation, repository configuration, local and SDK backend walkthroughs, troubleshooting, and CLI reference.
+
 ## Quick Start
 
 ```bash

@@ -7,7 +7,7 @@ This matrix defines which Proton SDK paths are realistically runnable by externa
 ## Runtime Paths In This Repository
 
 | Path | Configuration | Needs Internal Proton Access | Uses Your Own Proton Account | Who Can Run It |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Local prototype backend | `SDK_BACKEND_MODE=local` | No | Not required (supports test credentials) | Anyone |
 | proton-drive-cli bridge | `SDK_BACKEND_MODE=proton-drive-cli` | No | Yes | Anyone with Node.js 18+ |
 | External real LFS bridge | `PROTON_LFS_BRIDGE_URL=http://<host>:<port>` | Depends on service operator, not local machine | Yes | Anyone with reachable service endpoint |

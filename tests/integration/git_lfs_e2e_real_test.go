@@ -99,6 +99,7 @@ func TestE2ERealProtonDrivePipeline(t *testing.T) {
 	}
 
 	mustRun(t, base, sdkEnv, gitBin, "init", "--bare", remotePath)
+	mustRun(t, remotePath, sdkEnv, gitBin, "symbolic-ref", "HEAD", "refs/heads/main")
 	mustRun(t, repoPath, sdkEnv, gitBin, "init")
 	mustRun(t, repoPath, sdkEnv, gitBin, "checkout", "-b", "main")
 	mustRun(t, repoPath, sdkEnv, gitBin, "config", "user.name", "E2E Real Test")

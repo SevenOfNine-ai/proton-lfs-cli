@@ -18,7 +18,7 @@ The backend is "done" only when all conditions below are met:
 ## Current Baseline (2026-02-10)
 
 | Area | Status | Notes |
-|---|---|---|
+| --- | --- | --- |
 | Adapter protocol loop | Yellow | Basic flow exists; real transfer implementation absent |
 | Proton data path | Yellow | Local prototype remains default; proton-drive-cli TypeScript bridge available via `SDK_BACKEND_MODE=proton-drive-cli` |
 | Auth/session design | Yellow | pass-cli mandatory for credential resolution; no direct env var fallback |

@@ -71,7 +71,7 @@ func TestGitLFSCustomTransferConcurrentRoundTrip(t *testing.T) {
 
 	for _, artifact := range artifacts {
 		oid := oidByPath[artifact.name]
-		storedPath := filepath.Join(s.storePath, oid[:2], oid[2:])
+		storedPath := filepath.Join(s.storePath, oid[:2], oid[2:4], oid)
 		if _, err := os.Stat(storedPath); err != nil {
 			t.Fatalf("expected uploaded object for %s in local store, path=%s err=%v", artifact.name, storedPath, err)
 		}

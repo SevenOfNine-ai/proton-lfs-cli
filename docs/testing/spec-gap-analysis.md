@@ -22,7 +22,7 @@ Because of that boundary, full Git LFS API-spec coverage is currently impossible
 ## Coverage Matrix
 
 | Spec Area | Requirement | Status | Evidence | Gap |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Custom transfer protocol | Init request/ack shape | Covered | `cmd/adapter/main_test.go`, `cmd/adapter/protocol_spec_test.go` | None |
 | Custom transfer protocol | Upload/download message handling | Covered | `cmd/adapter/main_test.go`, `cmd/adapter/protocol_spec_test.go` | None |
 | Custom transfer protocol | Transfer-specific errors should not terminate process | Covered | `cmd/adapter/protocol_spec_test.go` | None |
@@ -48,7 +48,7 @@ Because of that boundary, full Git LFS API-spec coverage is currently impossible
 ## Additional Tests Missing (High Value)
 
 | Priority | Missing Test | Why It Matters |
-|---|---|---|
+| --- | --- | --- |
 | P1 | Soak/load/failure-injection tests for proton-drive-cli bridge | Validates stability, rate-limit behavior, and recovery semantics under sustained load |
 | P2 | Streaming large file support (>2GB) | proton-drive-cli may timeout on very large files |
 
@@ -57,7 +57,7 @@ Because of that boundary, full Git LFS API-spec coverage is currently impossible
 Yes, requirements can be derived from Git LFS specs and propagated down into the Proton SDK integration.
 
 | Requirement ID | Git LFS Requirement | Adapter Requirement | Proton SDK/Service Requirement |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | CT-001 | Upload request includes `oid`, `size`, `path` | Validate and enforce request invariants | Upload API must accept deterministic input and preserve exact bytes |
 | CT-002 | Download complete must return file `path` | Create and hand off durable temp file | SDK download must materialize bytes to local path safely |
 | CT-003 | Transfer errors are per-object, not fatal to process | Return `complete` with `error` and continue | Service must return typed recoverable errors, not crash |

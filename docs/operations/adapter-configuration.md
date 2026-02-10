@@ -15,7 +15,7 @@ Canonical convention in this repository:
 ## Environment Variables
 
 | Variable | Default | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `LFS_BRIDGE_URL` | `http://localhost:3000` | LFS bridge base URL |
 | `PROTON_LFS_BACKEND` | `local` | Adapter backend (`local`, `sdk`) |
 | `ADAPTER_ALLOW_MOCK_TRANSFERS` | `false` | Enables mock transfer mode |
@@ -47,7 +47,7 @@ The script verifies that `pass-cli` is authenticated, validates both references,
 When running `proton-lfs-bridge` with `SDK_BACKEND_MODE=proton-drive-cli` (or `real` as legacy alias):
 
 | Variable | Default | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `SDK_BACKEND_MODE` | `local` | `proton-drive-cli` enables the TypeScript bridge (also accepts `real` as alias) |
 | `PROTON_APP_VERSION` | `external-drive-protonlfs@dev` | Proton client app version header |
 | `PROTON_DATA_PASSWORD` | empty | Optional dedicated data password fallback |

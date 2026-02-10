@@ -45,16 +45,15 @@ const SDK_STORAGE_DIR = trimmedEnv('SDK_STORAGE_DIR') || path.join(TEMP_DIR, 'pr
 // --- Proton Drive CLI bridge ---
 const PROTON_APP_VERSION = trimmedEnv('PROTON_APP_VERSION') || 'external-drive-protonlfs@dev';
 
-const DEFAULT_DRIVE_CLI_BIN = path.resolve(
-  __dirname,
-  '..',
-  '..',
-  'submodules',
-  'proton-drive-cli',
-  'dist',
-  'index.js'
-);
-const PROTON_DRIVE_CLI_BIN = trimmedEnv('PROTON_DRIVE_CLI_BIN') || DEFAULT_DRIVE_CLI_BIN;
+function resolveDriveCliBin() {
+  const envBin = trimmedEnv('PROTON_DRIVE_CLI_BIN');
+  if (envBin) return envBin;
+
+  // proton-drive-cli is a workspace dependency — resolve from node_modules
+  return require.resolve('@sevenofnine-ai/proton-drive-cli');
+}
+
+const PROTON_DRIVE_CLI_BIN = resolveDriveCliBin();
 const PROTON_DRIVE_CLI_TIMEOUT_MS = parseIntEnv('PROTON_DRIVE_CLI_TIMEOUT_MS', 5 * 60 * 1000);
 const MAX_CONCURRENT_SUBPROCESSES = parseIntEnv('MAX_CONCURRENT_SUBPROCESSES', 10);
 

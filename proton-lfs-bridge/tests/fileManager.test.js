@@ -28,14 +28,14 @@ describe('File Manager', () => {
       const oid = '00abc123def456';
       const result = fileManager.getProtonDrivePath(oid);
 
-      expect(result).toBe('LFS/00/abc123def456');
+      expect(result).toBe('LFS/00/ab/00abc123def456');
     });
 
     test('handles various OIDs correctly', () => {
       const tests = [
-        { oid: 'aabbcc', expected: 'LFS/aa/bbcc' },
-        { oid: 'ff00ff', expected: 'LFS/ff/00ff' },
-        { oid: '00000000', expected: 'LFS/00/000000' },
+        { oid: 'aabbcc', expected: 'LFS/aa/bb/aabbcc' },
+        { oid: 'ff00ff', expected: 'LFS/ff/00/ff00ff' },
+        { oid: '00000000', expected: 'LFS/00/00/00000000' },
       ];
 
       tests.forEach(test => {
@@ -54,7 +54,7 @@ describe('File Manager', () => {
       const oid = '00abc123def456';
       const result = fileManager.getLocalObjectPath(oid);
 
-      expect(result).toContain(path.join('00', 'abc123def456'));
+      expect(result).toContain(path.join('00', 'ab', '00abc123def456'));
     });
   });
 
@@ -86,7 +86,7 @@ describe('File Manager', () => {
       const testFile = path.join(testDir, 'hashtest.bin');
       fs.writeFileSync(testFile, 'content');
 
-      const result = await fileManager.uploadFile('token', 'oid', testFile);
+      const result = await fileManager.uploadFile('token', 'oid0', testFile);
 
       expect(result.hash).toBeDefined();
       expect(result.hash).toMatch(/^[a-f0-9]{64}$/); // SHA-256 in hex
@@ -97,7 +97,7 @@ describe('File Manager', () => {
       const data = Buffer.alloc(2048); // 2KB file
       fs.writeFileSync(testFile, data);
 
-      const result = await fileManager.uploadFile('token', 'oid', testFile);
+      const result = await fileManager.uploadFile('token', 'oid0', testFile);
 
       expect(result.size).toBe(2048);
     });
@@ -141,7 +141,7 @@ describe('File Manager', () => {
     test('creates directories if needed', async () => {
       const outputPath = path.join(testDir, 'nested/deep/dir/file.bin');
 
-      await fileManager.downloadFile('token', 'oid', outputPath);
+      await fileManager.downloadFile('token', 'oid0', outputPath);
 
       expect(fs.existsSync(outputPath)).toBe(true);
     });
@@ -149,7 +149,7 @@ describe('File Manager', () => {
     test('includes SHA-256 hash in result', async () => {
       const outputPath = path.join(testDir, 'hashtest.bin');
 
-      const result = await fileManager.downloadFile('token', 'oid', outputPath);
+      const result = await fileManager.downloadFile('token', 'oid0', outputPath);
 
       expect(result.hash).toBeDefined();
       expect(result.hash).toMatch(/^[a-f0-9]{64}$/);

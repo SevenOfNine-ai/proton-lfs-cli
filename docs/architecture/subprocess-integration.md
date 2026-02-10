@@ -45,7 +45,7 @@ SDK Service                          proton-drive-cli
 ## Configuration
 
 | Variable | Default | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `PROTON_DRIVE_CLI_BIN` | `submodules/proton-drive-cli/dist/index.js` | Path to CLI entry point |
 | `PROTON_DRIVE_CLI_TIMEOUT_MS` | `300000` | Per-operation timeout |
 | `PROTON_DRIVE_CLI_SESSION_DIR` | `~/.proton-drive-cli` | Session persistence directory |

@@ -3,7 +3,7 @@
 Updated: 2026-02-09
 
 | ID | Severity | Risk | Impact | Mitigation | Status |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | R-001 | Critical | Mock upload/download path could be mistaken for real persistence | Silent data loss | Adapter now fails closed unless mock mode is explicitly enabled | Mitigated (monitor) |
 | R-002 | High | Real Proton transfer path is experimental and not yet production-hardened | Core goal is only partially met | In-repo real mode now exists via proton-drive-cli TypeScript bridge; next hardening: persistent session lifecycle, stronger secret handling, and soak validation | Open |
 | R-003 | High | Auth/session model is prototype-only | Account compromise or invalid session behavior | Design secure session/token lifecycle with explicit revocation and expiry handling | Open |

@@ -14,10 +14,10 @@ const { spawn } = require('child_process');
 const logger = require('./logger');
 const config = require('./config');
 
-const MAX_BRIDGE_OUTPUT_DETAILS = 4 * 1024;
+// Shared validators from proton-drive-cli (canonical source)
+const { validateOid: _validateOid, validateLocalPath: _validateLocalPath } = require('@sevenofnine-ai/proton-drive-cli/bridge');
 
-// OID validation (64-character hex string)
-const OID_RE = /^[a-f0-9]{64}$/i;
+const MAX_BRIDGE_OUTPUT_DETAILS = 4 * 1024;
 
 // Subprocess pool tracking
 let activeSubprocesses = 0;
@@ -32,21 +32,18 @@ class BridgeError extends Error {
 }
 
 function validateOid(oid) {
-  if (!oid || typeof oid !== 'string') {
-    throw new BridgeError('OID is required', 400);
-  }
-  if (!OID_RE.test(oid)) {
-    throw new BridgeError('Invalid OID format: expected 64-character hex string', 400);
+  try {
+    _validateOid(oid);
+  } catch (err) {
+    throw new BridgeError(err.message, 400);
   }
 }
 
 function validatePath(filePath) {
-  if (!filePath || typeof filePath !== 'string') {
-    throw new BridgeError('File path is required', 400);
-  }
-  const normalized = path.normalize(filePath);
-  if (normalized.includes('..')) {
-    throw new BridgeError('Path traversal not allowed', 400);
+  try {
+    _validateLocalPath(filePath);
+  } catch (err) {
+    throw new BridgeError(err.message, 400);
   }
 }
 

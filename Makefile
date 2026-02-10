@@ -82,7 +82,7 @@ build-drive-cli: ## Build proton-drive-cli TypeScript bridge
 		exit 1; \
 	fi
 	@if [ "$(JS_PM)" = "yarn" ]; then \
-		COREPACK_HOME=$(COREPACK_HOME_DIR) $(JS_PM) workspace proton-drive-cli build; \
+		COREPACK_HOME=$(COREPACK_HOME_DIR) $(JS_PM) workspace @sevenofnine-ai/proton-drive-cli build; \
 	else \
 		$(JS_PM) --workspace $(DRIVE_CLI_DIR) run build; \
 	fi
@@ -110,7 +110,7 @@ test-sdk: ## Run SDK service tests
 			echo "yarn $$YARN_VERSION detected; Yarn 4+ required. Run: corepack enable && corepack prepare yarn@4.1.1 --activate"; \
 			exit 1; \
 		fi; \
-		COREPACK_HOME=$(COREPACK_HOME_DIR) $(JS_PM) workspace proton-lfs-bridge test --runInBand; \
+		COREPACK_HOME=$(COREPACK_HOME_DIR) $(JS_PM) workspace @sevenofnine-ai/proton-lfs-bridge test --runInBand; \
 	else \
 		$(JS_PM) --workspace $(BRIDGE_DIR) test -- --runInBand; \
 	fi
@@ -231,7 +231,7 @@ check-sdk-prereqs: ## Verify prerequisites for sdk integration tests
 	fi
 	@if [ -z "$${PROTON_LFS_BRIDGE_URL:-}" ]; then \
 		if [ "$(JS_PM)" = "yarn" ]; then \
-			COREPACK_HOME=$(COREPACK_HOME_DIR) $(JS_PM) workspace proton-lfs-bridge node -e "require.resolve('express')" >/dev/null 2>&1 || { \
+			COREPACK_HOME=$(COREPACK_HOME_DIR) $(JS_PM) workspace @sevenofnine-ai/proton-lfs-bridge node -e "require.resolve('express')" >/dev/null 2>&1 || { \
 				echo "JS dependencies for $(BRIDGE_DIR) are missing (cannot resolve express via yarn workspace)."; \
 				echo "Run: $(JS_PM) install"; \
 				exit 1; \
@@ -285,7 +285,7 @@ lint-sdk: ## Run SDK service lint checks
 			echo "yarn $$YARN_VERSION detected; Yarn 4+ required. Run: corepack enable && corepack prepare yarn@4.1.1 --activate"; \
 			exit 1; \
 		fi; \
-		COREPACK_HOME=$(COREPACK_HOME_DIR) $(JS_PM) workspace proton-lfs-bridge lint; \
+		COREPACK_HOME=$(COREPACK_HOME_DIR) $(JS_PM) workspace @sevenofnine-ai/proton-lfs-bridge lint; \
 	else \
 		$(JS_PM) --workspace $(BRIDGE_DIR) run lint; \
 	fi

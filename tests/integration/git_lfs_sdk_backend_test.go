@@ -502,7 +502,7 @@ func TestGitLFSCustomTransferSDKBackendRoundTrip(t *testing.T) {
 	}
 
 	if !service.external {
-		storedPath := filepath.Join(service.storagePath, oid[:2], oid[2:])
+		storedPath := filepath.Join(service.storagePath, oid[:2], oid[2:4], oid)
 		if _, err := os.Stat(storedPath); err != nil {
 			t.Fatalf("expected uploaded object in sdk storage, path=%s err=%v", storedPath, err)
 		}

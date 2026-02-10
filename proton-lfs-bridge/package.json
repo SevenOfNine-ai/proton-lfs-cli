@@ -1,9 +1,14 @@
 {
-  "name": "proton-lfs-bridge",
-  "version": "1.0.0",
-  "private": true,
+  "name": "@sevenofnine-ai/proton-lfs-bridge",
+  "version": "0.1.1",
   "description": "Node.js bridge between Git LFS adapter and Proton Drive",
   "main": "server.js",
+  "bin": "bin/proton-lfs-bridge.js",
+  "files": [
+    "bin/",
+    "lib/",
+    "server.js"
+  ],
   "scripts": {
     "start": "node server.js",
     "dev": "NODE_ENV=development node server.js",
@@ -20,6 +25,7 @@
   "author": "Proton",
   "license": "MIT",
   "dependencies": {
+    "@sevenofnine-ai/proton-drive-cli": "workspace:*",
     "axios": "^1.13.2",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",

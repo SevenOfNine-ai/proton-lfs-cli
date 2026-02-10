@@ -30,6 +30,7 @@ jobs:
           config: .markdownlint.json
           globs: |
             README.md
+            USAGE.md
             SECURITY.md
             docs/**/*.md
 
@@ -43,6 +44,7 @@ jobs:
           args: >-
             --config .lychee.toml
             README.md
+            USAGE.md
             SECURITY.md
             docs/**/*.md
         env:
@@ -72,7 +74,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "yarn"
 
       - name: Install honkit
         run: npm install -g honkit@6

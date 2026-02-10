@@ -122,6 +122,7 @@ func setupRepositoryForUpload(t *testing.T) integrationSetup {
 	}
 
 	mustRun(t, base, env, gitBin, "init", "--bare", remotePath)
+	mustRun(t, remotePath, env, gitBin, "symbolic-ref", "HEAD", "refs/heads/main")
 	mustRun(t, repoPath, env, gitBin, "init")
 	mustRun(t, repoPath, env, gitBin, "checkout", "-b", "main")
 	mustRun(t, repoPath, env, gitBin, "config", "user.name", "Integration Test")
@@ -177,7 +178,7 @@ func TestGitLFSCustomTransferStandaloneUpload(t *testing.T) {
 	if strings.Contains(strings.ToLower(lfsPushOutput), "error") {
 		t.Fatalf("unexpected error in lfs push output:\n%s", lfsPushOutput)
 	}
-	storedPath := filepath.Join(s.storePath, oid[:2], oid[2:])
+	storedPath := filepath.Join(s.storePath, oid[:2], oid[2:4], oid)
 	if _, err := os.Stat(storedPath); err != nil {
 		t.Fatalf("expected uploaded object in local store, path=%s err=%v", storedPath, err)
 	}

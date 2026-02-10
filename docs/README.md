@@ -14,7 +14,7 @@ Project-owned docs live here. Upstream/vendor docs remain under `submodules/` an
 
 - `docs/project/`: goals, plan, risks, and current status.
 - `docs/architecture/`: component boundaries and protocol contracts.
-- `docs/operations/`: runtime configuration and deployment guidance.
+- `docs/operations/`: runtime configuration, deployment, and release guidance.
 - `docs/testing/`: test strategy, coverage gaps, and requirement traceability.
 - `docs/reference/`: concise scope references to external specs.
 

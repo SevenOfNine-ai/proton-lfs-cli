@@ -157,7 +157,7 @@ func (b *LocalStoreBackend) validateSession(session *Session) error {
 }
 
 func (b *LocalStoreBackend) objectPath(oid string) string {
-	return filepath.Join(b.storeDir, oid[:2], oid[2:])
+	return filepath.Join(b.storeDir, oid[:2], oid[2:4], oid)
 }
 
 type SDKServiceBackend struct {

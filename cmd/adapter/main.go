@@ -387,7 +387,7 @@ func (a *Adapter) sendProgressSequence(enc *json.Encoder, oid string, totalSize 
 }
 
 func (a *Adapter) localObjectPath(oid string) string {
-	return filepath.Join(a.localStoreDir, oid[:2], oid[2:])
+	return filepath.Join(a.localStoreDir, oid[:2], oid[2:4], oid)
 }
 
 func (a *Adapter) handleMockUpload(msg *InboundMessage, enc *json.Encoder) error {

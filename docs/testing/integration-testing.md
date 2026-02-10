@@ -7,7 +7,7 @@ Integration tests validate Git LFS client behavior against the adapter runtime a
 ## Test Commands
 
 | Command | Scope |
-|---|---|
+| --- | --- |
 | `make test` | Adapter unit tests |
 | `make test-sdk` | Node bridge unit tests |
 | `make test-integration` | Git LFS + adapter integration suite |
