@@ -20,7 +20,7 @@ From `submodules/git-lfs/`:
 
 From project root:
 - `go build -o bin/git-lfs-proton-adapter ./cmd/adapter/` - Build Proton custom adapter
-- `yarn workspace proton-git-lfs-sdk-service test --runInBand` - Test Node.js SDK wrapper
+- `yarn workspace proton-lfs-bridge test --runInBand` - Test Node.js SDK wrapper
 
 ## Project Conventions
 - Feature requests/discussions: Post to Discussions channel (non-bug topics)
@@ -58,7 +58,7 @@ From project root:
 
 ## Integration Points
 - **Authentication**: Adapter obtains credentials via git-credential helper, environment variables, or direct Proton auth flow. Session management is adapter responsibility.
-- **SDK HTTP API**: Adapter calls Proton SDK (JavaScript/Node.js service). SDK enforces official endpoints only; no proxying allowed.
+- **SDK HTTP API**: Adapter calls Proton SDK (JavaScript/Node.js LFS bridge). SDK enforces official endpoints only; no proxying allowed.
 - **File organization**: Proton Drive: `LFS/00/abc123..., LFS/01/def456..., ...` (hierarchical by OID prefix)
 - **Encryption**: SDK handles client-side AES-256 encryption; adapter passes plain bytes to SDK, receives encrypted from Proton
 - **Dependencies**: Cobra (CLI), testify (testing), crypto/networking libraries in Go; Node.js Express + Proton SDK in service
@@ -92,7 +92,7 @@ From project root:
 - 80%+ test coverage required for new code
 - Document all exported functions with JSDoc
 - Use Jest for testing (configured in `package.json`)
-- Run tests before commit: `yarn workspace proton-git-lfs-sdk-service test --runInBand`
+- Run tests before commit: `yarn workspace proton-lfs-bridge test --runInBand`
 
 ### Testing Pyramid
 
@@ -100,21 +100,21 @@ For every module/package, implement:
 
 1. **Unit Tests** (70% of tests)
    - Test individual functions in isolation
-   - Mock external dependencies (SDK service, filesystem, network)
+   - Mock external dependencies (LFS bridge, filesystem, network)
    - Test happy path and error conditions
    - Test edge cases and boundary conditions
    - Examples:
      - `cmd/adapter/main_test.go` - Adapter message handling
-     - `proton-sdk-service/tests/` - Service endpoints
+     - `proton-lfs-bridge/tests/` - Service endpoints
    - Files: `*_test.go` (Go) or `*.test.js` (Node.js)
 
 2. **Integration Tests** (20% of tests)
    - Test component interactions
    - Use test fixtures and mock services
-   - Verify adapter ↔ SDK service communication
+   - Verify adapter ↔ LFS bridge communication
    - Use in-memory database or temporary files
    - Examples:
-     - Adapter ↔ SDK service API calls
+     - Adapter ↔ LFS bridge API calls
      - Session management with file operations
    - Location: `tests/integration/` (documented in `docs/testing/integration-testing.md`)
 
@@ -135,14 +135,14 @@ For every module/package, implement:
 - [ ] Unit tests for message parsing (`*_test.go`)
 - [ ] Unit tests for session initialization
 - [ ] Unit tests for error handling
-- [ ] Integration test stub connecting adapter to SDK service
+- [ ] Integration test stub connecting adapter to LFS bridge
 - [ ] 80%+ coverage: `go test -cover ./cmd/adapter/...`
 
-**Phase 4 (SDK Service)**:
+**Phase 4 (LFS Bridge)**:
 - [ ] Unit tests for each HTTP endpoint
 - [ ] Unit tests for session management (`jest --coverage`)
 - [ ] Unit tests for file operations
-- [ ] Integration tests: SDK service ↔ Proton SDK
+- [ ] Integration tests: LFS bridge ↔ Proton SDK
 - [ ] 80%+ coverage for new code
 
 **Phase 5 (Integration)**:
@@ -174,7 +174,7 @@ make fmt lint          # Format + lint
 # Local testing:
 make test              # All tests (Go + Node.js)
 make test-watch        # Watch mode
-yarn workspace proton-git-lfs-sdk-service test --watch
+yarn workspace proton-lfs-bridge test --watch
 
 # CI/CD (GitHub Actions):
 # Automatically runs on push/PR

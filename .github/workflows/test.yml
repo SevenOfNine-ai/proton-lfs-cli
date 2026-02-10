@@ -18,12 +18,11 @@ jobs:
   go-test:
     name: Go tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       PROTON_PASS_REF_ROOT: pass://Personal/Proton Git LFS
       PROTON_PASS_USERNAME_REF: pass://Personal/Proton Git LFS/username
       PROTON_PASS_PASSWORD_REF: pass://Personal/Proton Git LFS/password
-      PROTON_USERNAME: ""
-      PROTON_PASSWORD: ""
 
     steps:
       - name: Checkout
@@ -49,6 +48,7 @@ jobs:
   integration-timeout:
     name: Integration timeout semantics (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -90,12 +90,12 @@ jobs:
       - name: Run timeout semantics integration tests
         shell: bash
         run: |
-          mkdir -p .cache/go-build
-          GOCACHE="$PWD/.cache/go-build" go test -tags integration ./tests/integration/... -run '^TestGitLFSCustomTransferTimeout' -v
+          go test -tags integration ./tests/integration/... -run '^TestGitLFSCustomTransferTimeout' -v
 
   integration-stress:
     name: Integration concurrency stress (ubuntu)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       PROTON_LFS_STRESS_FILE_COUNT: "16"
       PROTON_LFS_STRESS_ROUNDS: "2"
@@ -122,24 +122,24 @@ jobs:
       - name: Run concurrency stress/soak integration test
         shell: bash
         run: |
-          mkdir -p .cache/go-build
-          GOCACHE="$PWD/.cache/go-build" go test -tags integration ./tests/integration/... -run '^TestGitLFSCustomTransferConcurrentStressSoak$' -v
+          go test -tags integration ./tests/integration/... -run '^TestGitLFSCustomTransferConcurrentStressSoak$' -v
 
-  sdk-integration-pass:
-    name: SDK integration (pass refs)
+  bridge-integration:
+    name: Bridge integration (pass refs)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       PROTON_PASS_REF_ROOT: pass://Personal/Proton Git LFS
       PROTON_PASS_USERNAME_REF: pass://Personal/Proton Git LFS/username
       PROTON_PASS_PASSWORD_REF: pass://Personal/Proton Git LFS/password
-      PROTON_USERNAME: ""
-      PROTON_PASSWORD: ""
       PASS_MOCK_USERNAME: integration-user@proton.test
       PASS_MOCK_PASSWORD: integration-password
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -149,7 +149,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
+          cache: "yarn"
 
       - name: Install git-lfs and pass-cli dependencies
         run: |
@@ -168,11 +169,133 @@ jobs:
           corepack enable
           corepack prepare yarn@4.1.1 --activate
           yarn --version
-          yarn install
+          yarn install --immutable
 
-      - name: Run SDK integration test with pass references only
+      - name: Run bridge integration test with pass references only
         env:
           PROTON_PASS_CLI_BIN: ${{ github.workspace }}/scripts/mock-pass-cli.sh
         run: |
           chmod +x scripts/mock-pass-cli.sh
           go test -tags integration ./tests/integration/... -run SDK -v
+
+  bridge-unit-tests:
+    name: Bridge unit tests (Jest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "yarn"
+
+      - name: Enable Corepack and install dependencies
+        run: |
+          corepack enable
+          corepack prepare yarn@4.1.1 --activate
+          yarn install --immutable
+
+      - name: Run bridge service tests
+        run: yarn workspace proton-lfs-bridge test --runInBand
+
+  drive-cli-bridge-tests:
+    name: Drive CLI bridge integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PROTON_PASS_REF_ROOT: pass://Personal/Proton Git LFS
+      PROTON_PASS_USERNAME_REF: pass://Personal/Proton Git LFS/username
+      PROTON_PASS_PASSWORD_REF: pass://Personal/Proton Git LFS/password
+      PASS_MOCK_USERNAME: integration-user@proton.test
+      PASS_MOCK_PASSWORD: integration-password
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "yarn"
+
+      - name: Install git-lfs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-lfs
+          git lfs version
+
+      - name: Enable Corepack and install dependencies
+        run: |
+          corepack enable
+          corepack prepare yarn@4.1.1 --activate
+          yarn install --immutable
+
+      - name: Run bridge integration tests with mocks
+        env:
+          PROTON_PASS_CLI_BIN: ${{ github.workspace }}/scripts/mock-pass-cli.sh
+          PROTON_DRIVE_CLI_BIN: ${{ github.workspace }}/proton-lfs-bridge/tests/testdata/mock-proton-drive-cli.js
+          SDK_BACKEND_MODE: proton-drive-cli
+        run: |
+          chmod +x scripts/mock-pass-cli.sh
+          go test -tags integration ./tests/integration/... -run ProtonDriveCli -v
+
+  e2e-mocked:
+    name: Mocked E2E pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PROTON_PASS_REF_ROOT: pass://Personal/Proton Git LFS
+      PROTON_PASS_USERNAME_REF: pass://Personal/Proton Git LFS/username
+      PROTON_PASS_PASSWORD_REF: pass://Personal/Proton Git LFS/password
+      PASS_MOCK_USERNAME: integration-user@proton.test
+      PASS_MOCK_PASSWORD: integration-password
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "yarn"
+
+      - name: Install git-lfs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-lfs
+          git lfs version
+
+      - name: Enable Corepack and install dependencies
+        run: |
+          corepack enable
+          corepack prepare yarn@4.1.1 --activate
+          yarn install --immutable
+
+      - name: Build adapter
+        run: make build
+
+      - name: Run mocked E2E pipeline tests
+        env:
+          PROTON_PASS_CLI_BIN: ${{ github.workspace }}/scripts/mock-pass-cli.sh
+          PROTON_DRIVE_CLI_BIN: ${{ github.workspace }}/proton-lfs-bridge/tests/testdata/mock-proton-drive-cli.js
+          SDK_BACKEND_MODE: proton-drive-cli
+        run: |
+          chmod +x scripts/mock-pass-cli.sh
+          go test -tags integration ./tests/integration/... -run E2EMocked -v

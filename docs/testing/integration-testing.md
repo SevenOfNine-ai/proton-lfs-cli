@@ -14,19 +14,23 @@ Integration tests validate Git LFS client behavior against the adapter runtime a
 | `make test-integration-timeout` | Stalled-adapter timeout semantics |
 | `make test-integration-stress` | High-volume concurrent stress/soak |
 | `make test-integration-sdk` | SDK backend integration path (local service by default) |
-| `make test-integration-sdk-real` | SDK backend integration path against external `PROTON_SDK_SERVICE_URL` |
+| `make test-integration-sdk-real` | SDK backend integration path against external `PROTON_LFS_BRIDGE_URL` |
+| `make test-integration-proton-drive-cli` | proton-drive-cli bridge integration tests |
+| `make test-integration-credentials` | Credential flow security tests |
+| `make test-e2e-mock` | Mocked E2E pipeline (no real credentials) |
+| `make test-e2e-real` | Real Proton Drive E2E (requires pass-cli login + build-drive-cli) |
 
 ## Prerequisites
 
 - `git-lfs` available on `PATH`.
 - Adapter built with `make build`.
 - For local SDK path: Node.js installed and service deps installed (`make setup`).
-- For in-repo real SDK mode (`SDK_BACKEND_MODE=real`): .NET 9 SDK installed (`dotnet --version`).
-- For in-repo real SDK mode, `dotnet restore proton-sdk-service/tools/proton-real-bridge/ProtonRealBridge.csproj` must succeed (including any required NuGet source credentials).
-  - `submodules/sdk/cs/nuget.config` maps `Proton.*` packages to a NuGet source key named `Proton`; ensure that source is configured locally.
+- For proton-drive-cli bridge mode (`SDK_BACKEND_MODE=proton-drive-cli`): `make build-drive-cli` must succeed.
 - JS dependencies should be installed from repository root using Yarn 4 via Corepack (`corepack enable && corepack prepare yarn@4.1.1 --activate && yarn install`) when running the local SDK path.
 
 ## Credentials For SDK Tests
+
+Credentials are resolved exclusively via pass-cli. Direct environment variable fallback is not supported.
 
 Preferred path:
 
@@ -49,19 +53,18 @@ Default package manager is `yarn` (Yarn 4 via Corepack). To use npm explicitly:
 make test-integration-sdk JS_PM=npm
 ```
 
-To run against the in-repo real backend mode:
+To run against the proton-drive-cli bridge mode:
 
 ```bash
-export SDK_BACKEND_MODE=real
+export SDK_BACKEND_MODE=proton-drive-cli
 make test-integration-sdk
 ```
 
-If this fails during `/init` with `proton bridge command failed (exit 1)`, read the embedded SDK service logs in the test output and fix the reported `dotnet restore/build` issue first.
-If you cannot access internal Proton NuGet feeds, do not use in-repo `SDK_BACKEND_MODE=real` build path.
-Use one of:
+If you cannot build proton-drive-cli, use one of:
 
-- External real service: set `PROTON_SDK_SERVICE_URL` and run `make test-integration-sdk-real`.
-- Prebuilt bridge binary from a trusted internal build: set `PROTON_REAL_BRIDGE_BIN`.
+- External real service: set `PROTON_LFS_BRIDGE_URL` and run `make test-integration-sdk-real`.
+- Local prototype path (no real Proton backend): default `SDK_BACKEND_MODE=local`.
+
 See `docs/architecture/sdk-capability-matrix.md` for the full environment matrix.
 
 Optional (accounts requiring explicit data password or 2FA):
@@ -71,7 +74,7 @@ Optional (accounts requiring explicit data password or 2FA):
 
 ## Personal Account Practical Steps
 
-If you are testing with a personal Proton account and do not have internal Proton NuGet access, use this flow:
+If you are testing with a personal Proton account:
 
 1. Store credentials in Proton Pass.
 1. Use the default references:
@@ -93,27 +96,32 @@ make check-sdk-prereqs
 1. Choose one runtime path:
 
    - Local prototype path (no real Proton backend): `make test-integration-sdk`
-   - Real backend via external service: set `PROTON_SDK_SERVICE_URL` and run `make test-integration-sdk-real`
-   - Real backend via trusted prebuilt bridge binary: set `SDK_BACKEND_MODE=real` and `PROTON_REAL_BRIDGE_BIN`, then run `make test-integration-sdk`
+   - proton-drive-cli bridge: `SDK_BACKEND_MODE=proton-drive-cli make test-integration-sdk`
+   - Real backend via external service: set `PROTON_LFS_BRIDGE_URL` and run `make test-integration-sdk-real`
 
 To run SDK integration tests against an externally running service:
 
 ```bash
-export PROTON_SDK_SERVICE_URL='http://127.0.0.1:3000'
+export PROTON_LFS_BRIDGE_URL='http://127.0.0.1:3000'
 make test-integration-sdk-real
 ```
 
-When `PROTON_SDK_SERVICE_URL` is set, `make test-integration-sdk` also uses the external service and skips local Node/JS dependency checks.
+When `PROTON_LFS_BRIDGE_URL` is set, `make test-integration-sdk` also uses the external service and skips local Node/JS dependency checks.
 
-Optional override for temporary local troubleshooting:
+## Mocked E2E Testing
 
-- `PROTON_TEST_USERNAME`
-- `PROTON_TEST_PASSWORD`
+For CI and local testing without real Proton credentials:
+
+```bash
+make test-e2e-mock
+```
+
+This uses `mock-pass-cli.sh` and `mock-proton-drive-cli.js` to exercise the full pipeline: `git lfs push` -> adapter -> LFS bridge -> mock bridge -> mock storage, then clone and pull back.
 
 ## Coverage Expectations
 
 - Real `git-lfs` subprocess path for upload and download.
-- SDK service API contract path covering `/init`, `/upload`, `/download`, `/refresh`, and `/list`.
+- LFS bridge API contract path covering `/init`, `/upload`, `/download`, `/refresh`, and `/list`.
 - Standalone mode behavior (`action: null`) coverage.
 - Object-level failure handling coverage (`complete.error`).
 - Wrong-OID response rejection coverage (`progress` and `complete`).
@@ -121,11 +129,12 @@ Optional override for temporary local troubleshooting:
 - Stalled-adapter timeout semantics coverage (`lfs.activitytimeout`) across OS CI matrix.
 - Concurrent multi-file roundtrip coverage (`lfs.customtransfer.proton.concurrent=true`).
 - High-volume concurrent stress/soak coverage (`PROTON_LFS_STRESS_*`).
+- Mocked E2E pipeline coverage (full Git LFS push/pull through mock bridge).
 
 ## High-Value Missing Tests
 
-- Real Proton API integration tests are now runnable when an external real SDK service is provided via `PROTON_SDK_SERVICE_URL`.
-- In-repo service defaults to local persistence unless `SDK_BACKEND_MODE=real` is set.
+- Real Proton API integration tests are now runnable when an external real LFS bridge is provided via `PROTON_LFS_BRIDGE_URL`.
+- In-repo service defaults to local persistence unless `SDK_BACKEND_MODE=proton-drive-cli` is set.
 
 ## Stress Tuning
 

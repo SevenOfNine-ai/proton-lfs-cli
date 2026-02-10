@@ -9,13 +9,13 @@ import (
 	"time"
 )
 
-// SDKClient communicates with the Proton Drive SDK service
+// SDKClient communicates with the Proton LFS bridge service
 type SDKClient struct {
 	baseURL    string
 	httpClient *http.Client
 }
 
-// NewSDKClient creates a new SDK service client
+// NewSDKClient creates a new bridge service client
 func NewSDKClient(baseURL string) *SDKClient {
 	return &SDKClient{
 		baseURL: baseURL,
@@ -118,7 +118,7 @@ func (c *SDKClient) DownloadFile(token, oid string, outputPath string) error {
 	return nil
 }
 
-// postJSON sends a JSON POST request to the SDK service
+// postJSON sends a JSON POST request to the bridge service
 func (c *SDKClient) postJSON(endpoint string, body []byte) (*http.Response, error) {
 	url := c.baseURL + endpoint
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
@@ -129,7 +129,7 @@ func (c *SDKClient) postJSON(endpoint string, body []byte) (*http.Response, erro
 	return c.httpClient.Do(req)
 }
 
-// Health checks if the SDK service is available
+// Health checks if the bridge service is available
 func (c *SDKClient) Health() error {
 	resp, err := c.httpClient.Get(c.baseURL + "/health")
 	if err != nil {
@@ -138,7 +138,7 @@ func (c *SDKClient) Health() error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("SDK service unhealthy: status %d", resp.StatusCode)
+		return fmt.Errorf("bridge service unhealthy: status %d", resp.StatusCode)
 	}
 
 	return nil

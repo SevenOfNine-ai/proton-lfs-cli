@@ -1,6 +1,16 @@
 # Proton SDK Bridge
 
-Bridge implementation path: `proton-sdk-service/`.
+Bridge implementation path: `proton-lfs-bridge/`.
+
+## Architecture
+
+```
+Go Adapter → Node.js LFS Bridge → proton-drive-cli (TypeScript subprocess) → Proton API
+                ↓
+            pass-cli (credentials)
+```
+
+The bridge spawns `proton-drive-cli bridge <command>` as a subprocess, passing JSON via stdin and reading JSON from stdout. Credentials are never passed via command-line arguments.
 
 ## Current Interface
 
@@ -11,16 +21,29 @@ Bridge implementation path: `proton-sdk-service/`.
 - `GET /list` with `token` and optional `folder`.
 - `GET /health` for readiness checks.
 
-## Current Reality
+## Backend Modes
 
-- Service supports two backend modes:
-  - `SDK_BACKEND_MODE=local`: deterministic local persistence prototype.
-  - `SDK_BACKEND_MODE=real`: in-repo `.NET` bridge (`proton-sdk-service/tools/proton-real-bridge`) that uses Proton C# SDK for auth/upload/download/list.
-- Real mode currently authenticates per operation and keeps credentials in process memory-bound session metadata.
-- Real mode can use `PROTON_DATA_PASSWORD` and `PROTON_SECOND_FACTOR_CODE` when request payload does not include those fields.
-- Integration tests can also target an external SDK service via `PROTON_SDK_SERVICE_URL`.
+- `SDK_BACKEND_MODE=local`: deterministic local persistence prototype.
+- `SDK_BACKEND_MODE=proton-drive-cli` (or `real` as legacy alias): TypeScript bridge using `proton-drive-cli` subprocess for auth/upload/download/list via Proton Drive API with E2E encryption.
+- Integration tests can also target an external LFS bridge via `PROTON_LFS_BRIDGE_URL`.
 
-Environment feasibility matrix: `docs/architecture/sdk-capability-matrix.md`.
+## Subprocess Communication Protocol
+
+The bridge (`proton-lfs-bridge/lib/protonDriveBridge.js`) communicates with `proton-drive-cli` using:
+
+1. **Spawn**: `node <proton-drive-cli-path> bridge <command>`
+2. **Stdin**: JSON payload with credentials and operation parameters
+3. **Stdout**: JSON response envelope `{ ok: true/false, payload: {...}, error: "...", code: 400-500 }`
+4. **Stderr**: Diagnostic logs (not parsed for responses)
+
+## Security Considerations
+
+- Credentials passed via stdin (not visible in `ps` output)
+- OID validation: strict 64-character hex regex before subprocess spawn
+- Path traversal prevention: reject paths containing `..`
+- Subprocess pool: maximum 10 concurrent operations
+- Timeout: 5 minutes per operation (configurable via `PROTON_DRIVE_CLI_TIMEOUT_MS`)
+- Session tokens stored in `~/.proton-drive-cli/session.json` with 0600 permissions
 
 ## Requirements Propagated From Git LFS
 
@@ -29,9 +52,15 @@ Environment feasibility matrix: `docs/architecture/sdk-capability-matrix.md`.
 - Session failure must produce explicit adapter errors, never silent success.
 - API contracts must remain deterministic so adapter tests can assert behavior.
 
+## Known Issues
+
+1. proton-drive-cli session refresh not fully reliable (workaround: re-authenticate on 401).
+2. CAPTCHA may require manual intervention for new accounts.
+3. No streaming for large files (>2GB may timeout — increase `PROTON_DRIVE_CLI_TIMEOUT_MS`).
+
 ## Next Hardening Targets
 
-1. Replace mock auth/session logic with real Proton SDK flow.
-2. Reuse persisted SDK sessions in real mode instead of re-authenticating each operation.
-3. Add strict response schema validation between adapter and service.
-4. Add fault-injection tests (timeouts, partial writes, session expiry).
+1. Improve session reuse to avoid re-authentication on every operation.
+2. Add strict response schema validation between adapter and service.
+3. Add fault-injection tests (timeouts, partial writes, session expiry).
+4. Address upstream session refresh issue in proton-drive-cli.

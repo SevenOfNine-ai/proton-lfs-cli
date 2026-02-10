@@ -6,13 +6,14 @@ JS_PM ?= yarn
 COREPACK_HOME_DIR := $(PWD)/.cache/corepack
 
 ADAPTER_BIN := bin/git-lfs-proton-adapter
-SDK_SERVICE_DIR := proton-sdk-service
+BRIDGE_DIR := proton-lfs-bridge
 GIT_LFS_DIR := submodules/git-lfs
+DRIVE_CLI_DIR := submodules/proton-drive-cli
 GO_CACHE_DIR := .cache/go-build
 
 .PHONY: help setup setup-env install-deps \
-	build build-adapter build-lfs build-all \
-	test test-adapter test-sdk test-lfs test-integration test-integration-timeout test-integration-stress test-integration-sdk test-integration-sdk-real test-all \
+	build build-adapter build-lfs build-drive-cli build-all \
+	test test-adapter test-sdk test-lfs test-integration test-integration-timeout test-integration-stress test-integration-sdk test-integration-sdk-real test-e2e-mock test-e2e-real test-all \
 	pass-env check-sdk-prereqs check-sdk-real-prereqs \
 	fmt lint lint-go lint-sdk \
 	clean status install-hooks
@@ -62,7 +63,7 @@ install-deps: ## Install Go dependencies and JS dependencies (default: yarn via 
 
 build: build-adapter ## Build first-party binaries
 
-build-all: build-adapter build-lfs ## Build adapter and Git LFS submodule
+build-all: build-adapter build-lfs build-drive-cli ## Build adapter, Git LFS submodule, and proton-drive-cli
 
 build-adapter: ## Build the custom transfer adapter
 	@mkdir -p bin
@@ -75,9 +76,20 @@ build-lfs: ## Build Git LFS submodule
 	fi
 	@$(MAKE) -C $(GIT_LFS_DIR)
 
+build-drive-cli: ## Build proton-drive-cli TypeScript bridge
+	@if [ ! -d $(DRIVE_CLI_DIR) ]; then \
+		echo "$(DRIVE_CLI_DIR) not found. Run: git submodule update --init --recursive"; \
+		exit 1; \
+	fi
+	@if [ "$(JS_PM)" = "yarn" ]; then \
+		COREPACK_HOME=$(COREPACK_HOME_DIR) $(JS_PM) workspace proton-drive-cli build; \
+	else \
+		$(JS_PM) --workspace $(DRIVE_CLI_DIR) run build; \
+	fi
+
 test: test-adapter ## Run core tests
 
-test-all: test-adapter test-sdk test-lfs test-integration ## Run all test suites
+test-all: test-adapter test-sdk test-lfs test-integration test-e2e-mock ## Run all test suites
 
 test-adapter: ## Run adapter tests
 	@mkdir -p $(GO_CACHE_DIR)
@@ -98,9 +110,9 @@ test-sdk: ## Run SDK service tests
 			echo "yarn $$YARN_VERSION detected; Yarn 4+ required. Run: corepack enable && corepack prepare yarn@4.1.1 --activate"; \
 			exit 1; \
 		fi; \
-		COREPACK_HOME=$(COREPACK_HOME_DIR) $(JS_PM) workspace proton-git-lfs-sdk-service test --runInBand; \
+		COREPACK_HOME=$(COREPACK_HOME_DIR) $(JS_PM) workspace proton-lfs-bridge test --runInBand; \
 	else \
-		$(JS_PM) --workspace $(SDK_SERVICE_DIR) test -- --runInBand; \
+		$(JS_PM) --workspace $(BRIDGE_DIR) test -- --runInBand; \
 	fi
 
 test-lfs: ## Run Git LFS submodule tests
@@ -122,10 +134,18 @@ test-integration-stress: ## Run high-volume concurrency stress/soak integration 
 	@mkdir -p $(GO_CACHE_DIR)
 	GOCACHE=$(PWD)/$(GO_CACHE_DIR) $(GO) test -tags integration ./tests/integration/... -run '^TestGitLFSCustomTransferConcurrentStressSoak$$' -v
 
-test-integration-sdk: check-sdk-prereqs ## Run sdk backend integration tests (local service by default, external when PROTON_SDK_SERVICE_URL is set; use SDK_BACKEND_MODE=real for in-repo real mode)
+test-integration-proton-drive-cli: ## Run proton-drive-cli bridge integration tests
 	@mkdir -p $(GO_CACHE_DIR)
-	@if [ -n "$${PROTON_SDK_SERVICE_URL:-}" ]; then \
-		echo "Using external SDK service URL: $$PROTON_SDK_SERVICE_URL"; \
+	GOCACHE=$(PWD)/$(GO_CACHE_DIR) $(GO) test -tags integration ./tests/integration/... -run ProtonDriveCli -v
+
+test-integration-credentials: ## Run credential flow security tests
+	@mkdir -p $(GO_CACHE_DIR)
+	GOCACHE=$(PWD)/$(GO_CACHE_DIR) $(GO) test -tags integration ./tests/integration/... -run Credential -v
+
+test-integration-sdk: check-sdk-prereqs ## Run sdk backend integration tests (local service by default, external when PROTON_LFS_BRIDGE_URL is set; use SDK_BACKEND_MODE=real for in-repo real mode)
+	@mkdir -p $(GO_CACHE_DIR)
+	@if [ -n "$${PROTON_LFS_BRIDGE_URL:-}" ]; then \
+		echo "Using external bridge URL: $$PROTON_LFS_BRIDGE_URL"; \
 		eval "$$(./scripts/export-pass-env.sh)" && \
 			GOCACHE=$(PWD)/$(GO_CACHE_DIR) $(GO) test -tags integration ./tests/integration/... -run SDK -v; \
 	else \
@@ -141,11 +161,27 @@ test-integration-sdk: check-sdk-prereqs ## Run sdk backend integration tests (lo
 			NODE_BIN="$$NODE_BIN_RESOLVED" GOCACHE=$(PWD)/$(GO_CACHE_DIR) $(GO) test -tags integration ./tests/integration/... -run SDK -v; \
 	fi
 
-test-integration-sdk-real: check-sdk-real-prereqs ## Run SDK integration tests against external PROTON_SDK_SERVICE_URL
+test-integration-sdk-real: check-sdk-real-prereqs ## Run SDK integration tests against external PROTON_LFS_BRIDGE_URL
 	@mkdir -p $(GO_CACHE_DIR)
-	@echo "Using external SDK service URL: $${PROTON_SDK_SERVICE_URL}"
+	@echo "Using external bridge URL: $${PROTON_LFS_BRIDGE_URL}"
 	@eval "$$(./scripts/export-pass-env.sh)" && \
 		GOCACHE=$(PWD)/$(GO_CACHE_DIR) $(GO) test -tags integration ./tests/integration/... -run SDK -v
+
+test-e2e-mock: build-adapter ## Mocked E2E pipeline (no real credentials)
+	@mkdir -p $(GO_CACHE_DIR)
+	@chmod +x scripts/mock-pass-cli.sh
+	PROTON_PASS_CLI_BIN=$(PWD)/scripts/mock-pass-cli.sh \
+		PROTON_DRIVE_CLI_BIN=$(PWD)/$(BRIDGE_DIR)/tests/testdata/mock-proton-drive-cli.js \
+		PASS_MOCK_USERNAME=integration-user@proton.test \
+		PASS_MOCK_PASSWORD=integration-password \
+		SDK_BACKEND_MODE=proton-drive-cli \
+		GOCACHE=$(PWD)/$(GO_CACHE_DIR) $(GO) test -tags integration ./tests/integration/... -run E2EMocked -v
+
+test-e2e-real: build-adapter build-drive-cli ## Real Proton Drive E2E (requires pass-cli login + build-drive-cli)
+	@mkdir -p $(GO_CACHE_DIR)
+	@eval "$$(./scripts/export-pass-env.sh)" && \
+		SDK_BACKEND_MODE=proton-drive-cli \
+		GOCACHE=$(PWD)/$(GO_CACHE_DIR) $(GO) test -tags integration ./tests/integration/... -run E2E -v
 
 pass-env: ## Print export commands for Proton Pass-based adapter credentials
 	@./scripts/export-pass-env.sh
@@ -153,37 +189,17 @@ pass-env: ## Print export commands for Proton Pass-based adapter credentials
 check-sdk-prereqs: ## Verify prerequisites for sdk integration tests
 	@command -v git-lfs >/dev/null 2>&1 || (echo "git-lfs not found on PATH" && exit 1)
 	@command -v "$${PROTON_PASS_CLI_BIN:-pass-cli}" >/dev/null 2>&1 || (echo "pass-cli not found on PATH (or PROTON_PASS_CLI_BIN invalid)" && exit 1)
-	@if [ "$${SDK_BACKEND_MODE:-local}" = "real" ] && [ -z "$${PROTON_SDK_SERVICE_URL:-}" ]; then \
-		command -v dotnet >/dev/null 2>&1 || { \
-			echo "dotnet not found on PATH but SDK_BACKEND_MODE=real requires the in-repo .NET Proton bridge."; \
-			echo "Install .NET 9 SDK, or use local mode (SDK_BACKEND_MODE=local)."; \
-			exit 1; \
-		}; \
-		BRIDGE_PROJECT="$${PROTON_REAL_BRIDGE_PROJECT:-proton-sdk-service/tools/proton-real-bridge/ProtonRealBridge.csproj}"; \
-		if [ ! -f "$$BRIDGE_PROJECT" ]; then \
-			echo "real bridge project not found: $$BRIDGE_PROJECT"; \
-			exit 1; \
-		fi; \
-		if [ -z "$${PROTON_REAL_BRIDGE_BIN:-}" ]; then \
-			RESTORE_LOG="$$(mktemp)"; \
-			if ! dotnet restore "$$BRIDGE_PROJECT" --nologo >"$$RESTORE_LOG" 2>&1; then \
-				echo "dotnet restore failed for real bridge project: $$BRIDGE_PROJECT"; \
-				echo "Verify NuGet sources/credentials for Proton SDK dependencies and rerun."; \
-				if grep -q "PackageSourceMapping is enabled" "$$RESTORE_LOG"; then \
-					echo "Hint: submodules/sdk/cs/nuget.config maps Proton.* packages to a NuGet source key named 'Proton'."; \
-					echo "Configure a NuGet source with name 'Proton' (dotnet nuget add source <url> --name Proton)."; \
-				fi; \
-				echo "If you do not have access to internal Proton NuGet:"; \
-				echo "  1) use external real service mode: export PROTON_SDK_SERVICE_URL=http://<host>:<port> && make test-integration-sdk-real"; \
-				echo "  2) or provide a prebuilt bridge binary: export PROTON_REAL_BRIDGE_BIN=/path/to/proton-real-bridge"; \
-				cat "$$RESTORE_LOG"; \
-				rm -f "$$RESTORE_LOG"; \
+	@if [ "$${SDK_BACKEND_MODE:-local}" = "real" ] || [ "$${SDK_BACKEND_MODE:-local}" = "proton-drive-cli" ]; then \
+		if [ -z "$${PROTON_LFS_BRIDGE_URL:-}" ]; then \
+			DRIVE_CLI_BIN="$${PROTON_DRIVE_CLI_BIN:-$(DRIVE_CLI_DIR)/dist/index.js}"; \
+			if [ ! -f "$$DRIVE_CLI_BIN" ]; then \
+				echo "proton-drive-cli not built: $$DRIVE_CLI_BIN not found"; \
+				echo "Run: make build-drive-cli"; \
 				exit 1; \
 			fi; \
-			rm -f "$$RESTORE_LOG"; \
 		fi; \
 	fi
-	@if [ -z "$${PROTON_SDK_SERVICE_URL:-}" ]; then \
+	@if [ -z "$${PROTON_LFS_BRIDGE_URL:-}" ]; then \
 		NODE_BIN_RESOLVED="$$(command -v $(NODE) 2>/dev/null || true)"; \
 		if [ -z "$$NODE_BIN_RESOLVED" ] && command -v zsh >/dev/null 2>&1; then \
 			NODE_BIN_RESOLVED="$$(zsh -lc 'command -v node' 2>/dev/null || true)"; \
@@ -196,7 +212,7 @@ check-sdk-prereqs: ## Verify prerequisites for sdk integration tests
 		fi; \
 		echo "Resolved node binary: $$NODE_BIN_RESOLVED"; \
 	fi
-	@if [ -z "$${PROTON_SDK_SERVICE_URL:-}" ]; then \
+	@if [ -z "$${PROTON_LFS_BRIDGE_URL:-}" ]; then \
 		if [ "$(JS_PM)" = "yarn" ] && ! command -v yarn >/dev/null 2>&1; then \
 			echo "yarn not found on PATH. Run: corepack enable"; \
 			exit 1; \
@@ -205,7 +221,7 @@ check-sdk-prereqs: ## Verify prerequisites for sdk integration tests
 			exit 1; \
 		fi; \
 	fi
-	@if [ -z "$${PROTON_SDK_SERVICE_URL:-}" ] && [ "$(JS_PM)" = "yarn" ]; then \
+	@if [ -z "$${PROTON_LFS_BRIDGE_URL:-}" ] && [ "$(JS_PM)" = "yarn" ]; then \
 		YARN_VERSION="$$(COREPACK_HOME=$(COREPACK_HOME_DIR) yarn --version)"; \
 		YARN_MAJOR="$${YARN_VERSION%%.*}"; \
 		if [ "$$YARN_MAJOR" -lt 4 ]; then \
@@ -213,33 +229,33 @@ check-sdk-prereqs: ## Verify prerequisites for sdk integration tests
 			exit 1; \
 		fi; \
 	fi
-	@if [ -z "$${PROTON_SDK_SERVICE_URL:-}" ]; then \
+	@if [ -z "$${PROTON_LFS_BRIDGE_URL:-}" ]; then \
 		if [ "$(JS_PM)" = "yarn" ]; then \
-			COREPACK_HOME=$(COREPACK_HOME_DIR) $(JS_PM) workspace proton-git-lfs-sdk-service node -e "require.resolve('express')" >/dev/null 2>&1 || { \
-				echo "JS dependencies for $(SDK_SERVICE_DIR) are missing (cannot resolve express via yarn workspace)."; \
+			COREPACK_HOME=$(COREPACK_HOME_DIR) $(JS_PM) workspace proton-lfs-bridge node -e "require.resolve('express')" >/dev/null 2>&1 || { \
+				echo "JS dependencies for $(BRIDGE_DIR) are missing (cannot resolve express via yarn workspace)."; \
 				echo "Run: $(JS_PM) install"; \
 				exit 1; \
 			}; \
 		else \
-			$(JS_PM) --workspace $(SDK_SERVICE_DIR) exec -- node -e "require.resolve('express')" >/dev/null 2>&1 || { \
-				echo "JS dependencies for $(SDK_SERVICE_DIR) are missing (cannot resolve express via npm workspace)."; \
+			$(JS_PM) --workspace $(BRIDGE_DIR) exec -- node -e "require.resolve('express')" >/dev/null 2>&1 || { \
+				echo "JS dependencies for $(BRIDGE_DIR) are missing (cannot resolve express via npm workspace)."; \
 				echo "Run: $(JS_PM) install"; \
 				exit 1; \
 			}; \
 		fi; \
 	else \
-		echo "Using external SDK service URL: $$PROTON_SDK_SERVICE_URL"; \
+		echo "Using external bridge URL: $$PROTON_LFS_BRIDGE_URL"; \
 	fi
 	@./scripts/export-pass-env.sh >/dev/null
 	@echo "SDK integration prerequisites OK"
 
 check-sdk-real-prereqs: ## Verify prerequisites for sdk integration tests against external SDK service
-	@if [ -z "$${PROTON_SDK_SERVICE_URL:-}" ]; then \
-		echo "PROTON_SDK_SERVICE_URL is required for real SDK integration tests"; \
-		echo "Example: make test-integration-sdk-real PROTON_SDK_SERVICE_URL=http://127.0.0.1:3000"; \
+	@if [ -z "$${PROTON_LFS_BRIDGE_URL:-}" ]; then \
+		echo "PROTON_LFS_BRIDGE_URL is required for real SDK integration tests"; \
+		echo "Example: make test-integration-sdk-real PROTON_LFS_BRIDGE_URL=http://127.0.0.1:3000"; \
 		exit 1; \
 	fi
-	@$(MAKE) check-sdk-prereqs PROTON_SDK_SERVICE_URL="$${PROTON_SDK_SERVICE_URL}" JS_PM="$(JS_PM)" NODE="$(NODE)"
+	@$(MAKE) check-sdk-prereqs PROTON_LFS_BRIDGE_URL="$${PROTON_LFS_BRIDGE_URL}" JS_PM="$(JS_PM)" NODE="$(NODE)"
 
 fmt: ## Format Go code
 	$(GO) fmt ./cmd/...
@@ -269,9 +285,9 @@ lint-sdk: ## Run SDK service lint checks
 			echo "yarn $$YARN_VERSION detected; Yarn 4+ required. Run: corepack enable && corepack prepare yarn@4.1.1 --activate"; \
 			exit 1; \
 		fi; \
-		COREPACK_HOME=$(COREPACK_HOME_DIR) $(JS_PM) workspace proton-git-lfs-sdk-service lint; \
+		COREPACK_HOME=$(COREPACK_HOME_DIR) $(JS_PM) workspace proton-lfs-bridge lint; \
 	else \
-		$(JS_PM) --workspace $(SDK_SERVICE_DIR) run lint; \
+		$(JS_PM) --workspace $(BRIDGE_DIR) run lint; \
 	fi
 
 install-hooks: ## Install pre-commit hooks

@@ -123,8 +123,6 @@ func NewAdapter(sdkURL string) *Adapter {
 		allowMockTransfers: false,
 		localStoreDir:      envTrim(EnvLocalStoreDir),
 		backendKind:        BackendLocal,
-		protonUsername:     envTrim(EnvProtonUsername),
-		protonPassword:     envTrim(EnvProtonPassword),
 		protonPassCLIBin:   envTrim(EnvPassCLIBin),
 		protonPassUserRef:  passUserRef,
 		protonPassPassRef:  passPassRef,
@@ -188,7 +186,7 @@ func (a *Adapter) handleInit(msg *InboundMessage, enc *json.Encoder) error {
 		a.concurrentWorkers = DefaultConcurrentWorkers
 	}
 
-	// Initialize session with Proton Drive SDK service
+	// Initialize session with Proton LFS bridge
 	a.session = &Session{
 		Initialized: true,
 		CreatedAt:   time.Now(),
@@ -505,7 +503,7 @@ func (a *Adapter) createTempFile() (*os.File, error) {
 }
 
 func main() {
-	sdkURL := flag.String("sdk-service", envOrDefault(EnvSDKServiceURL, DefaultSDKServiceURL), "URL to Proton SDK service")
+	sdkURL := flag.String("bridge-url", envOrDefault(EnvLFSBridgeURL, DefaultLFSBridgeURL), "URL to Proton LFS bridge service")
 	defaultBackend := envTrim(EnvBackend)
 	if defaultBackend == "" {
 		defaultBackend = BackendLocal
@@ -513,8 +511,6 @@ func main() {
 	backend := flag.String("backend", defaultBackend, "Transfer backend to use: local or sdk")
 	allowMockTransfers := flag.Bool("allow-mock-transfers", envBoolOrDefault(EnvAllowMockTransfers, false), "Allow mock upload/download behavior (simulation only)")
 	localStoreDir := flag.String("local-store-dir", envTrim(EnvLocalStoreDir), "Local object store directory used for standalone transfers")
-	protonUsername := flag.String("proton-username", envTrim(EnvProtonUsername), "Proton account username used by the sdk backend")
-	protonPassword := flag.String("proton-password", envTrim(EnvProtonPassword), "Proton account password used by the sdk backend")
 	defaultPassCLIBin := envTrim(EnvPassCLIBin)
 	if defaultPassCLIBin == "" {
 		defaultPassCLIBin = DefaultPassCLIBinary
@@ -541,8 +537,6 @@ func main() {
 	if adapter.backendKind == "" {
 		adapter.backendKind = BackendLocal
 	}
-	adapter.protonUsername = strings.TrimSpace(*protonUsername)
-	adapter.protonPassword = strings.TrimSpace(*protonPassword)
 	adapter.protonPassCLIBin = strings.TrimSpace(*protonPassCLIBin)
 	if adapter.protonPassCLIBin == "" {
 		adapter.protonPassCLIBin = DefaultPassCLIBinary

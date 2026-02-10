@@ -5,7 +5,7 @@ Updated: 2026-02-09
 | ID | Severity | Risk | Impact | Mitigation | Status |
 |---|---|---|---|---|---|
 | R-001 | Critical | Mock upload/download path could be mistaken for real persistence | Silent data loss | Adapter now fails closed unless mock mode is explicitly enabled | Mitigated (monitor) |
-| R-002 | High | Real Proton transfer path is experimental and not yet production-hardened | Core goal is only partially met | In-repo real mode now exists via C# SDK bridge; next hardening: persistent session lifecycle, stronger secret handling, and soak validation | Open |
+| R-002 | High | Real Proton transfer path is experimental and not yet production-hardened | Core goal is only partially met | In-repo real mode now exists via proton-drive-cli TypeScript bridge; next hardening: persistent session lifecycle, stronger secret handling, and soak validation | Open |
 | R-003 | High | Auth/session model is prototype-only | Account compromise or invalid session behavior | Design secure session/token lifecycle with explicit revocation and expiry handling | Open |
 | R-004 | High | SDK service tests do not validate real server behavior deeply | Regressions can ship undetected | Go integration suite now executes real SDK bridge API contract (`/init`, `/upload`, `/download`, `/refresh`, `/list`) and `git-lfs` roundtrip against local or external service | Mitigated (monitor) |
 | R-005 | Medium | CI historically referenced missing files/paths | Broken PR signal, delayed delivery | CI workflows rewritten to test actual repo paths only | Mitigated |

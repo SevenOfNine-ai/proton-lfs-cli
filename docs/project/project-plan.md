@@ -15,16 +15,16 @@ The backend is "done" only when all conditions below are met:
 5. Operational SLOs are defined, measured, and met.
 6. Disaster recovery and rollback procedures are tested.
 
-## Current Baseline (2026-02-09)
+## Current Baseline (2026-02-10)
 
 | Area | Status | Notes |
 |---|---|---|
 | Adapter protocol loop | Yellow | Basic flow exists; real transfer implementation absent |
-| Proton data path | Yellow | Local prototype remains default; experimental real mode now available via in-repo C# SDK bridge |
-| Auth/session design | Red | Prototype-only behavior, no secure credential integration |
-| Test quality | Yellow | Go tests improved; Node tests mostly mock app behavior |
-| CI/CD | Yellow | Reworked to reliable baseline; coverage and release hardening still needed |
-| Security posture | Red | No production-ready secrets, threat model, or audited controls |
+| Proton data path | Yellow | Local prototype remains default; proton-drive-cli TypeScript bridge available via `SDK_BACKEND_MODE=proton-drive-cli` |
+| Auth/session design | Yellow | pass-cli mandatory for credential resolution; no direct env var fallback |
+| Test quality | Yellow | Go tests improved; Node tests cover config, bridge, and security; mocked E2E pipeline tests added |
+| CI/CD | Yellow | SDK unit tests, bridge tests, and mocked E2E jobs added; coverage and release hardening still needed |
+| Security posture | Yellow | Credential lockdown via pass-cli, threat model documented, security tests in place; audit still needed |
 
 ## Delivery Phases
 

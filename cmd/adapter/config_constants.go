@@ -12,19 +12,17 @@ const (
 )
 
 const (
-	DefaultSDKServiceURL     = "http://localhost:3000"
+	DefaultLFSBridgeURL      = "http://localhost:3000"
 	DefaultConcurrentWorkers = 4
 	DefaultPassCLIBinary     = "pass-cli"
 	DefaultPassRefRoot       = "pass://Personal/Proton Git LFS"
 )
 
 const (
-	EnvSDKServiceURL      = "SDK_SERVICE_URL"
+	EnvLFSBridgeURL       = "LFS_BRIDGE_URL"
 	EnvBackend            = "PROTON_LFS_BACKEND"
 	EnvAllowMockTransfers = "ADAPTER_ALLOW_MOCK_TRANSFERS"
 	EnvLocalStoreDir      = "PROTON_LFS_LOCAL_STORE_DIR"
-	EnvProtonUsername     = "PROTON_USERNAME"
-	EnvProtonPassword     = "PROTON_PASSWORD"
 	EnvPassCLIBin         = "PROTON_PASS_CLI_BIN"
 	EnvPassRefRoot        = "PROTON_PASS_REF_ROOT"
 	EnvPassUsernameRef    = "PROTON_PASS_USERNAME_REF"

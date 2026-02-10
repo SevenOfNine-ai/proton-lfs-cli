@@ -2,21 +2,31 @@
 
 Pre-alpha Git LFS custom transfer backend for Proton Drive.
 
-## Current State (2026-02-09)
+## Current State (2026-02-10)
 
 - Git LFS custom transfer adapter protocol is implemented and tested.
 - `local` backend roundtrip path is implemented for deterministic integration testing.
-- `sdk` backend path is wired through `proton-sdk-service` and integration-tested.
-- `proton-sdk-service` now supports `SDK_BACKEND_MODE=real` through an in-repo .NET bridge that uses Proton's C# SDK.
-- Real mode is experimental and requires .NET 9 SDK plus valid Proton credentials.
+- `sdk` backend path is wired through `proton-lfs-bridge` and integration-tested.
+- `proton-lfs-bridge` uses `proton-drive-cli` (TypeScript) as the bridge to Proton Drive.
+- Bridge mode uses `proton-drive-cli bridge` subprocess with JSON stdin/stdout protocol.
 - Mock transfers are fail-closed by default and require explicit opt-in.
-- SDK feasibility by environment (external vs internal) is documented in `docs/architecture/sdk-capability-matrix.md`.
+
+## Prerequisites
+
+- Go 1.25+
+- Node.js 18+
+- Yarn 4+ (via Corepack) or npm
+- git-lfs
+- pass-cli (for credential management)
+
+No .NET SDK required.
 
 ## Quick Start
 
 ```bash
+git submodule update --init --recursive
 make setup
-make build
+make build-all    # Builds Go adapter, Git LFS, and proton-drive-cli
 make test
 make test-integration
 ```
@@ -39,6 +49,12 @@ make setup
 make setup JS_PM=npm
 ```
 
+Build proton-drive-cli bridge:
+
+```bash
+make build-drive-cli
+```
+
 SDK-backed integration path:
 
 ```bash
@@ -47,24 +63,20 @@ make check-sdk-prereqs
 make test-integration-sdk
 ```
 
-In-repo real SDK mode:
+Proton Drive CLI bridge mode:
 
 ```bash
 pass-cli login
-export SDK_BACKEND_MODE=real
+export SDK_BACKEND_MODE=proton-drive-cli
 make test-integration-sdk
 ```
 
-If you do not have internal Proton NuGet access, use one of:
+External LFS bridge integration path:
 
 ```bash
-export PROTON_SDK_SERVICE_URL='http://127.0.0.1:3000'
+pass-cli login
+export PROTON_LFS_BRIDGE_URL='http://127.0.0.1:3000'
 make test-integration-sdk-real
-
-# or
-export SDK_BACKEND_MODE=real
-export PROTON_REAL_BRIDGE_BIN='/absolute/path/to/proton-real-bridge'
-make test-integration-sdk
 ```
 
 If your account requires dedicated data password or 2FA code, set:
@@ -72,14 +84,6 @@ If your account requires dedicated data password or 2FA code, set:
 ```bash
 export PROTON_DATA_PASSWORD='...'
 export PROTON_SECOND_FACTOR_CODE='...'
-```
-
-External/real SDK service integration path:
-
-```bash
-pass-cli login
-export PROTON_SDK_SERVICE_URL='http://127.0.0.1:3000'
-make test-integration-sdk-real
 ```
 
 If your Node binary is managed in shell startup (for example `nvm` in `~/.zshrc`), pass it explicitly:
@@ -115,10 +119,10 @@ Canonical reference root is `pass://Personal/Proton Git LFS`.
 ## Repository Layout
 
 - `cmd/adapter/`: Go custom transfer adapter.
-- `proton-sdk-service/`: Node bridge service prototype for SDK calls.
+- `proton-lfs-bridge/`: Node LFS bridge service for SDK calls.
 - `tests/integration/`: black-box Git LFS integration tests.
 - `docs/`: project plan, architecture, testing, and operations docs.
-- `submodules/`: upstream references (`git-lfs`, `sdk`, `pass-cli`).
+- `submodules/`: upstream references (`git-lfs`, `pass-cli`, `proton-drive-cli`).
 
 ## Documentation
 

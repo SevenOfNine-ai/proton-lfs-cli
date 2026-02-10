@@ -12,7 +12,8 @@ func (a *Adapter) resolveSDKCredentials() error {
 		return nil
 	}
 
-	if strings.TrimSpace(a.protonUsername) == "" && strings.TrimSpace(a.protonPassUserRef) != "" {
+	// Resolve username via pass-cli reference.
+	if strings.TrimSpace(a.protonPassUserRef) != "" {
 		value, err := resolvePassCLISecret(a.protonPassCLIBin, a.protonPassUserRef)
 		if err != nil {
 			return fmt.Errorf("username reference %q: %w", a.protonPassUserRef, err)
@@ -20,7 +21,8 @@ func (a *Adapter) resolveSDKCredentials() error {
 		a.protonUsername = value
 	}
 
-	if strings.TrimSpace(a.protonPassword) == "" && strings.TrimSpace(a.protonPassPassRef) != "" {
+	// Resolve password via pass-cli reference.
+	if strings.TrimSpace(a.protonPassPassRef) != "" {
 		value, err := resolvePassCLISecret(a.protonPassCLIBin, a.protonPassPassRef)
 		if err != nil {
 			return fmt.Errorf("password reference %q: %w", a.protonPassPassRef, err)
@@ -34,6 +36,14 @@ func (a *Adapter) resolveSDKCredentials() error {
 		if err == nil {
 			a.protonUsername = value
 		}
+	}
+
+	// Credentials must be resolved via pass-cli; direct env var fallback is not supported.
+	if strings.TrimSpace(a.protonUsername) == "" {
+		return fmt.Errorf("could not resolve Proton username via pass-cli (set PROTON_PASS_USERNAME_REF or PROTON_PASS_REF_ROOT)")
+	}
+	if strings.TrimSpace(a.protonPassword) == "" {
+		return fmt.Errorf("could not resolve Proton password via pass-cli (set PROTON_PASS_PASSWORD_REF or PROTON_PASS_REF_ROOT)")
 	}
 
 	return nil

@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -135,6 +136,48 @@ exit 1
 	}
 	if adapter.protonPassword != "from-pass" {
 		t.Fatalf("unexpected resolved password %q", adapter.protonPassword)
+	}
+}
+
+func TestAdapterResolveSDKCredentialsFailsWithoutPassCLI(t *testing.T) {
+	scriptDir := t.TempDir()
+	script := writeExecutable(t, scriptDir, "fake-pass-cli", `#!/bin/sh
+echo "not found" >&2
+exit 1
+`)
+
+	adapter := NewAdapter("http://localhost:3000")
+	adapter.backendKind = BackendSDK
+	adapter.protonUsername = ""
+	adapter.protonPassword = ""
+	adapter.protonPassCLIBin = script
+	adapter.protonPassUserRef = "pass://Vault/Creds/username"
+	adapter.protonPassPassRef = "pass://Vault/Creds/password"
+
+	err := adapter.resolveSDKCredentials()
+	if err == nil {
+		t.Fatal("expected resolveSDKCredentials to return error when pass-cli is unavailable")
+	}
+	if !strings.Contains(err.Error(), "username reference") {
+		t.Fatalf("expected error about username reference, got: %v", err)
+	}
+}
+
+func TestAdapterResolveSDKCredentialsMandatory(t *testing.T) {
+	adapter := NewAdapter("http://localhost:3000")
+	adapter.backendKind = BackendSDK
+	adapter.protonUsername = ""
+	adapter.protonPassword = ""
+	adapter.protonPassCLIBin = "nonexistent-binary"
+	adapter.protonPassUserRef = ""
+	adapter.protonPassPassRef = ""
+
+	err := adapter.resolveSDKCredentials()
+	if err == nil {
+		t.Fatal("expected resolveSDKCredentials to return error when no pass-cli refs configured")
+	}
+	if !strings.Contains(err.Error(), "could not resolve Proton username via pass-cli") {
+		t.Fatalf("expected mandatory error message, got: %v", err)
 	}
 }
 

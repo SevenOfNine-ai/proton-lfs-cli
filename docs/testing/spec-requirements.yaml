@@ -137,7 +137,7 @@ requirements:
     tests:
       - tests/integration/git_lfs_sdk_backend_test.go
     gaps:
-      - in-repo sdk service still defaults to wrapper-local persistence
+      - in-repo LFS bridge still defaults to wrapper-local persistence
       - real mode requires explicit SDK_BACKEND_MODE=real and valid Proton credentials
 
   - id: CT-SDK-003
@@ -156,18 +156,71 @@ requirements:
     tests:
       - tests/integration/git_lfs_sdk_backend_test.go
     gaps:
-      - requires externally provided service URL via PROTON_SDK_SERVICE_URL
+      - requires externally provided service URL via PROTON_LFS_BRIDGE_URL
 
   - id: CT-SDK-005
     source: docs/architecture/proton-sdk-bridge.md
-    clause: in-repo-real-backend-mode
-    scope: sdk-service-real-mode
+    clause: in-repo-proton-drive-cli-backend-mode
+    scope: sdk-service-proton-drive-cli-mode
     status: covered
     tests:
       - tests/integration/git_lfs_sdk_backend_test.go
+      - tests/integration/git_lfs_proton_drive_cli_test.go
     gaps:
-      - requires dotnet 9 runtime/toolchain
       - needs dedicated stress and failure-injection coverage
+
+  - id: CT-CLI-001
+    source: docs/architecture/subprocess-integration.md
+    clause: proton-drive-cli-subprocess-spawn-and-lifecycle
+    scope: sdk-service-bridge
+    status: covered
+    tests:
+      - proton-lfs-bridge/tests/protonDriveBridge.test.js
+      - proton-lfs-bridge/tests/security/rate-limiting.test.js
+
+  - id: CT-CLI-002
+    source: docs/security/threat-model.md
+    clause: credential-injection-via-stdin
+    scope: sdk-service-bridge
+    status: covered
+    tests:
+      - proton-lfs-bridge/tests/protonDriveBridge.test.js
+      - proton-lfs-bridge/tests/security/command-injection.test.js
+      - tests/integration/credential_security_test.go
+
+  - id: CT-CLI-003
+    source: docs/architecture/subprocess-integration.md
+    clause: json-stdout-stderr-parsing
+    scope: sdk-service-bridge
+    status: covered
+    tests:
+      - proton-lfs-bridge/tests/protonDriveBridge.test.js
+
+  - id: CT-CLI-004
+    source: docs/security/threat-model.md
+    clause: session-token-persistence
+    scope: sdk-service-bridge
+    status: covered
+    tests:
+      - tests/integration/credential_security_test.go
+      - tests/integration/git_lfs_proton_drive_cli_test.go
+
+  - id: CT-CLI-005
+    source: docs/architecture/subprocess-integration.md
+    clause: encryption-decryption-correctness
+    scope: proton-drive-cli
+    status: delegated
+    gaps:
+      - correctness delegated to proton-drive-cli submodule tests
+
+  - id: CT-CLI-006
+    source: docs/architecture/subprocess-integration.md
+    clause: process-isolation-and-crash-recovery
+    scope: sdk-service-bridge
+    status: covered
+    tests:
+      - proton-lfs-bridge/tests/security/rate-limiting.test.js
+      - proton-lfs-bridge/tests/protonDriveBridge.test.js
 
   - id: API-BATCH-001
     source: submodules/git-lfs/docs/api/batch.md
@@ -195,14 +248,20 @@ requirements:
 
 propagation:
   - from: CT-002
-    to: proton-sdk-service
+    to: proton-lfs-bridge
     requirement: upload API must preserve exact bytes from local path
   - from: CT-003
-    to: proton-sdk-service
+    to: proton-lfs-bridge
     requirement: download API must materialize content to local path and return it
   - from: CT-004
-    to: proton-sdk-service
+    to: proton-lfs-bridge
     requirement: transfer failures must be object-scoped and typed, not process-fatal
   - from: CT-006
-    to: proton-sdk-service
+    to: proton-lfs-bridge
     requirement: deterministic OID mapping required for standalone mode
+  - from: CT-CLI-001
+    to: proton-drive-cli
+    requirement: subprocess must accept JSON on stdin and return JSON envelope on stdout
+  - from: CT-CLI-002
+    to: proton-drive-cli
+    requirement: credentials must be received via stdin, never via command-line arguments

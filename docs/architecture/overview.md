@@ -9,7 +9,7 @@ It does not implement a full Git LFS HTTP server (`/objects/batch`, basic transf
 
 - `git-lfs` client: invokes the custom transfer agent.
 - `cmd/adapter`: speaks line-delimited JSON protocol with Git LFS.
-- `proton-sdk-service`: HTTP bridge called by the adapter in `sdk` mode.
+- `proton-lfs-bridge`: HTTP bridge called by the adapter in `sdk` mode.
 - Backend mode:
   - `local`: deterministic local object store for tests.
   - `sdk`: service call path for Proton integration work.

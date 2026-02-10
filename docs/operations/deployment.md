@@ -6,15 +6,17 @@ This guide is for development and CI environments. Production rollout is blocked
 
 - Go toolchain available.
 - `git-lfs` installed and on `PATH`.
-- Node.js with Corepack enabled and Yarn 4 for `proton-sdk-service` and SDK tests.
-- .NET 9 SDK for in-repo real Proton bridge mode (`SDK_BACKEND_MODE=real`).
-- Building the in-repo real bridge from source currently requires internal Proton NuGet access (`Proton.*` package source mapping in `submodules/sdk/cs/nuget.config`).
+- Node.js 18+ with Corepack enabled and Yarn 4 for `proton-lfs-bridge` and SDK tests.
+- `pass-cli` for credential management.
+
+No .NET SDK required.
 
 ## Local Bring-Up
 
 ```bash
+git submodule update --init --recursive
 make setup
-make build
+make build-all    # Builds Go adapter, Git LFS, and proton-drive-cli
 make test
 make test-integration
 ```
@@ -29,6 +31,12 @@ yarn install
 npm install
 ```
 
+Build proton-drive-cli bridge:
+
+```bash
+make build-drive-cli
+```
+
 SDK-backed path:
 
 ```bash
@@ -36,26 +44,20 @@ pass-cli login
 make test-integration-sdk
 ```
 
-SDK-backed path with in-repo real Proton mode:
+SDK-backed path with proton-drive-cli bridge:
 
 ```bash
 pass-cli login
-export SDK_BACKEND_MODE=real
+export SDK_BACKEND_MODE=proton-drive-cli
 make check-sdk-prereqs
 make test-integration-sdk
 ```
 
-If you do not have internal Proton NuGet access, use one of:
+External real LFS bridge:
 
 ```bash
-# External real SDK service
-export PROTON_SDK_SERVICE_URL='http://127.0.0.1:3000'
+export PROTON_LFS_BRIDGE_URL='http://127.0.0.1:3000'
 make test-integration-sdk-real
-
-# Or trusted prebuilt bridge binary
-export SDK_BACKEND_MODE=real
-export PROTON_REAL_BRIDGE_BIN='/absolute/path/to/proton-real-bridge'
-make test-integration-sdk
 ```
 
 Optional environment variables for accounts that need explicit data password or 2FA:
@@ -95,7 +97,7 @@ git config lfs.standalonetransferagent proton
 Switch to SDK backend:
 
 ```bash
-git config lfs.customtransfer.proton.args "--backend=sdk --sdk-service=http://localhost:3000"
+git config lfs.customtransfer.proton.args "--backend=sdk --bridge-url=http://localhost:3000"
 ```
 
 ## CI Notes

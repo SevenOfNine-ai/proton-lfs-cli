@@ -16,7 +16,7 @@ Canonical convention in this repository:
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `SDK_SERVICE_URL` | `http://localhost:3000` | SDK service base URL |
+| `LFS_BRIDGE_URL` | `http://localhost:3000` | LFS bridge base URL |
 | `PROTON_LFS_BACKEND` | `local` | Adapter backend (`local`, `sdk`) |
 | `ADAPTER_ALLOW_MOCK_TRANSFERS` | `false` | Enables mock transfer mode |
 | `PROTON_LFS_LOCAL_STORE_DIR` | empty | Local backend object root |
@@ -24,15 +24,14 @@ Canonical convention in this repository:
 | `PROTON_PASS_REF_ROOT` | `pass://Personal/Proton Git LFS` | Pass ref root |
 | `PROTON_PASS_USERNAME_REF` | `${PROTON_PASS_REF_ROOT}/username` | Pass username ref |
 | `PROTON_PASS_PASSWORD_REF` | `${PROTON_PASS_REF_ROOT}/password` | Pass password ref |
-| `PROTON_USERNAME` | empty | Legacy fallback username |
-| `PROTON_PASSWORD` | empty | Legacy fallback password |
+
+Credentials are resolved exclusively via pass-cli. Direct environment variable fallback (`PROTON_USERNAME`/`PROTON_PASSWORD`) has been removed.
 
 Credential resolution order:
 
-1. CLI flags.
-2. `PROTON_USERNAME` / `PROTON_PASSWORD`.
-3. `PROTON_PASS_USERNAME_REF` / `PROTON_PASS_PASSWORD_REF`.
-4. If only password ref is set, fallback to `pass-cli user info --output json` for username.
+1. `PROTON_PASS_USERNAME_REF` / `PROTON_PASS_PASSWORD_REF` via pass-cli.
+2. If only password ref is set, fallback to `pass-cli user info --output json` for username.
+3. If credentials cannot be resolved, the adapter exits with an error.
 
 ## Helper Script
 
@@ -43,18 +42,16 @@ eval "$(./scripts/export-pass-env.sh)"
 
 The script verifies that `pass-cli` is authenticated, validates both references, sets `PROTON_PASS_*`, and unsets plaintext credential vars.
 
-## SDK Service Real Mode Constants
+## LFS Bridge Constants
 
-When running `proton-sdk-service` with `SDK_BACKEND_MODE=real`:
+When running `proton-lfs-bridge` with `SDK_BACKEND_MODE=proton-drive-cli` (or `real` as legacy alias):
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `SDK_BACKEND_MODE` | `local` | `real` enables the in-repo C# Proton SDK bridge |
+| `SDK_BACKEND_MODE` | `local` | `proton-drive-cli` enables the TypeScript bridge (also accepts `real` as alias) |
 | `PROTON_APP_VERSION` | `external-drive-protonlfs@dev` | Proton client app version header |
 | `PROTON_DATA_PASSWORD` | empty | Optional dedicated data password fallback |
 | `PROTON_SECOND_FACTOR_CODE` | empty | Optional 2FA code fallback |
-| `PROTON_REAL_BRIDGE_BIN` | empty | Optional prebuilt bridge executable path |
-| `PROTON_REAL_BRIDGE_PROJECT` | `proton-sdk-service/tools/proton-real-bridge/ProtonRealBridge.csproj` | Bridge project path used by `dotnet run` |
-| `PROTON_REAL_BRIDGE_CONFIGURATION` | `Release` | Build configuration for bridge execution |
-| `PROTON_REAL_BRIDGE_TIMEOUT_MS` | `300000` | Node-side command timeout |
-| `PROTON_REAL_BRIDGE_TIMEOUT_SECONDS` | `300` | Bridge-side operation timeout |
+| `PROTON_DRIVE_CLI_BIN` | `submodules/proton-drive-cli/dist/index.js` | Path to proton-drive-cli entry point |
+| `PROTON_DRIVE_CLI_TIMEOUT_MS` | `300000` | Subprocess command timeout |
+| `PROTON_DRIVE_CLI_SESSION_DIR` | `~/.proton-drive-cli` | Session file storage directory |

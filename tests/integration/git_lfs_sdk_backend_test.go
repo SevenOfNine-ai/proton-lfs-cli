@@ -23,7 +23,7 @@ import (
 
 const (
 	defaultPassRefRoot = "pass://Personal/Proton Git LFS"
-	envSDKServiceURL   = "PROTON_SDK_SERVICE_URL"
+	envLFSBridgeURL    = "PROTON_LFS_BRIDGE_URL"
 )
 
 type sdkServiceInstance struct {
@@ -31,33 +31,6 @@ type sdkServiceInstance struct {
 	storagePath string
 	logPath     string
 	external    bool
-}
-
-func sdkTestCredentials() (string, string) {
-	username := strings.TrimSpace(os.Getenv("PROTON_TEST_USERNAME"))
-	if username == "" {
-		username = strings.TrimSpace(os.Getenv("PROTON_USERNAME"))
-	}
-	if username == "" {
-		username = "integration-user@proton.test"
-	}
-
-	password := strings.TrimSpace(os.Getenv("PROTON_TEST_PASSWORD"))
-	if password == "" {
-		password = strings.TrimSpace(os.Getenv("PROTON_PASSWORD"))
-	}
-	if password == "" {
-		password = "integration-password"
-	}
-
-	return username, password
-}
-
-func sdkUsePassRefs() bool {
-	return strings.TrimSpace(os.Getenv("PROTON_PASS_REF_ROOT")) != "" ||
-		strings.TrimSpace(os.Getenv("PROTON_PASS_USERNAME_REF")) != "" ||
-		strings.TrimSpace(os.Getenv("PROTON_PASS_PASSWORD_REF")) != "" ||
-		strings.TrimSpace(os.Getenv("PROTON_PASS_CLI_BIN")) != ""
 }
 
 func sdkPassCLIPath() string {
@@ -69,7 +42,7 @@ func sdkPassCLIPath() string {
 }
 
 func sdkExternalServiceURL() string {
-	return strings.TrimRight(strings.TrimSpace(os.Getenv(envSDKServiceURL)), "/")
+	return strings.TrimRight(strings.TrimSpace(os.Getenv(envLFSBridgeURL)), "/")
 }
 
 func sdkPassRefConfig() (passRefRoot, usernameRef, passwordRef string) {
@@ -93,11 +66,6 @@ func sdkPassRefConfig() (passRefRoot, usernameRef, passwordRef string) {
 func sdkCredentialEnv(t *testing.T, base []string) []string {
 	t.Helper()
 
-	if !sdkUsePassRefs() {
-		username, password := sdkTestCredentials()
-		return append(base, "PROTON_USERNAME="+username, "PROTON_PASSWORD="+password)
-	}
-
 	passCLIBin := sdkPassCLIPath()
 	if strings.Contains(passCLIBin, string(os.PathSeparator)) {
 		if _, err := os.Stat(passCLIBin); err != nil {
@@ -115,8 +83,6 @@ func sdkCredentialEnv(t *testing.T, base []string) []string {
 		"PROTON_PASS_REF_ROOT="+passRefRoot,
 		"PROTON_PASS_USERNAME_REF="+usernameRef,
 		"PROTON_PASS_PASSWORD_REF="+passwordRef,
-		"PROTON_USERNAME=",
-		"PROTON_PASSWORD=",
 	)
 }
 
@@ -155,7 +121,7 @@ func startSDKService(t *testing.T, root string) sdkServiceInstance {
 		if err := waitForSDKServiceHealth(externalURL, 12*time.Second); err != nil {
 			t.Fatalf(
 				"sdk integration test expected external service from %s=%q, but health checks failed: %v",
-				envSDKServiceURL,
+				envLFSBridgeURL,
 				externalURL,
 				err,
 			)
@@ -166,9 +132,15 @@ func startSDKService(t *testing.T, root string) sdkServiceInstance {
 		}
 	}
 
-	if strings.EqualFold(strings.TrimSpace(os.Getenv("SDK_BACKEND_MODE")), "real") {
-		if _, err := exec.LookPath("dotnet"); err != nil {
-			t.Skipf("sdk integration test skipped: SDK_BACKEND_MODE=real requires dotnet on PATH: %v", err)
+	backendMode := strings.ToLower(strings.TrimSpace(os.Getenv("SDK_BACKEND_MODE")))
+	if backendMode == "real" || backendMode == "proton-drive-cli" {
+		// proton-drive-cli bridge mode: verify the CLI is built
+		driveCliBin := strings.TrimSpace(os.Getenv("PROTON_DRIVE_CLI_BIN"))
+		if driveCliBin == "" {
+			driveCliBin = filepath.Join(root, "submodules", "proton-drive-cli", "dist", "index.js")
+		}
+		if _, err := os.Stat(driveCliBin); err != nil {
+			t.Skipf("sdk integration test skipped: proton-drive-cli not built at %s: %v (run: make build-drive-cli)", driveCliBin, err)
 		}
 	}
 
@@ -177,12 +149,12 @@ func startSDKService(t *testing.T, root string) sdkServiceInstance {
 		t.Skipf("sdk integration test skipped: %v", err)
 	}
 
-	serviceDir := filepath.Join(root, "proton-sdk-service")
+	serviceDir := filepath.Join(root, "proton-lfs-bridge")
 	depCheck := exec.Command(nodeBin, "-e", "require.resolve('express')")
 	depCheck.Dir = serviceDir
 	if out, err := depCheck.CombinedOutput(); err != nil {
 		t.Skipf(
-			"sdk integration test skipped: proton-sdk-service dependencies missing (%v); run `yarn install` from repository root (or `make setup`) [details: %s]",
+			"sdk integration test skipped: proton-lfs-bridge dependencies missing (%v); run `yarn install` from repository root (or `make setup`) [details: %s]",
 			err,
 			strings.TrimSpace(string(out)),
 		)
@@ -203,7 +175,7 @@ func startSDKService(t *testing.T, root string) sdkServiceInstance {
 	cmd.Stderr = logFile
 	cmd.Env = append(
 		os.Environ(),
-		"SDK_SERVICE_PORT="+strconv.Itoa(port),
+		"LFS_BRIDGE_PORT="+strconv.Itoa(port),
 		"SDK_STORAGE_DIR="+storagePath,
 		"LOG_LEVEL=debug",
 		"NODE_ENV=test",
@@ -238,7 +210,7 @@ func startSDKService(t *testing.T, root string) sdkServiceInstance {
 func configureSDKCustomTransfer(t *testing.T, repoPath string, env []string, gitBin, adapterPath, serviceURL string) {
 	t.Helper()
 
-	sdkArgs := fmt.Sprintf("--backend=sdk --sdk-service=%s", serviceURL)
+	sdkArgs := fmt.Sprintf("--backend=sdk --bridge-url=%s", serviceURL)
 	mustRun(t, repoPath, env, gitBin, "config", "lfs.customtransfer.proton.path", adapterPath)
 	mustRun(t, repoPath, env, gitBin, "config", "lfs.customtransfer.proton.args", sdkArgs)
 	mustRun(t, repoPath, env, gitBin, "config", "lfs.customtransfer.proton.concurrent", "false")
@@ -326,10 +298,6 @@ func sdkReadPassCLISecret(t *testing.T, passCLIBin, reference string) string {
 
 func sdkResolvedCredentials(t *testing.T) (string, string) {
 	t.Helper()
-
-	if !sdkUsePassRefs() {
-		return sdkTestCredentials()
-	}
 
 	passCLIBin := sdkPassCLIPath()
 	if strings.Contains(passCLIBin, string(os.PathSeparator)) {
@@ -434,7 +402,7 @@ func TestSDKServiceAPIContractRoundTrip(t *testing.T) {
 
 	token := sdkInitToken(t, client, service, username, password)
 
-	sourceBytes := []byte("proton-sdk-service-api-contract-roundtrip")
+	sourceBytes := []byte("proton-lfs-bridge-api-contract-roundtrip")
 	oidHash := sha256.Sum256(sourceBytes)
 	oid := hex.EncodeToString(oidHash[:])
 
