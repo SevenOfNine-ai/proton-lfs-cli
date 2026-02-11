@@ -265,21 +265,24 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Build vendored SDK
         working-directory: submodules/proton-drive-cli/submodules/sdk/js/sdk
         run: npm install && npm run build
 
       - name: Install dependencies
         working-directory: submodules/proton-drive-cli
-        run: npm install
+        run: yarn install
 
       - name: Build
         working-directory: submodules/proton-drive-cli
-        run: npm run build
+        run: yarn build
 
       - name: Run proton-drive-cli tests
         working-directory: submodules/proton-drive-cli
-        run: npm test
+        run: yarn test
 
   e2e-mocked:
     name: Mocked E2E pipeline
