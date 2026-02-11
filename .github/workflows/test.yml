@@ -265,6 +265,10 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Build vendored SDK
+        working-directory: submodules/proton-drive-cli/submodules/sdk/js/sdk
+        run: npm install && npm run build
+
       - name: Install dependencies
         working-directory: submodules/proton-drive-cli
         run: npm install
