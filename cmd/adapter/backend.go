@@ -167,6 +167,9 @@ func (b *LocalStoreBackend) validateSession(session *Session) error {
 }
 
 func (b *LocalStoreBackend) objectPath(oid string) string {
+	if len(oid) < 4 {
+		return filepath.Join(b.storeDir, oid)
+	}
 	return filepath.Join(b.storeDir, oid[:2], oid[2:4], oid)
 }
 

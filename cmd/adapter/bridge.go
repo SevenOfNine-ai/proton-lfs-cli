@@ -159,7 +159,7 @@ func (bc *BridgeClient) runBridgeCommand(command string, request map[string]any)
 	resp, parseErr := parseBridgeOutput(stdout.Bytes(), stderr.Bytes())
 	if parseErr != nil {
 		if err != nil {
-			stderrText := strings.TrimSpace(stderr.String())
+			stderrText := sanitizeStderr(stderr.String())
 			if stderrText != "" {
 				return nil, fmt.Errorf("bridge %s failed: %s", command, stderrText)
 			}
@@ -180,6 +180,29 @@ func (bc *BridgeClient) runBridgeCommand(command string, request map[string]any)
 	}
 
 	return resp, nil
+}
+
+// sanitizeStderr strips sensitive data (tokens, paths, session info) from
+// subprocess stderr before surfacing it in error messages.
+func sanitizeStderr(raw string) string {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return ""
+	}
+	// Cap length to avoid leaking large debug output
+	const maxLen = 256
+	if len(s) > maxLen {
+		s = s[:maxLen] + "..."
+	}
+	// Redact anything that looks like a token, session ID, or bearer header
+	for _, pattern := range []string{"Bearer ", "token=", "session=", "AccessToken", "RefreshToken", "UID:"} {
+		if idx := strings.Index(s, pattern); idx >= 0 {
+			// Truncate from the sensitive prefix onward
+			s = s[:idx] + "[redacted]"
+			break
+		}
+	}
+	return s
 }
 
 // parseBridgeOutput extracts a JSON envelope from stdout, tolerating non-JSON

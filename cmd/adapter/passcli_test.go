@@ -84,8 +84,8 @@ exit 1
 
 	adapter := NewAdapter()
 	adapter.backendKind = BackendSDK
-	adapter.protonUsername = ""
-	adapter.protonPassword = ""
+	adapter.protonUsername = nil
+	adapter.protonPassword = nil
 	adapter.protonPassCLIBin = script
 	adapter.protonPassUserRef = "pass://Vault/Creds/username"
 	adapter.protonPassPassRef = "pass://Vault/Creds/password"
@@ -93,10 +93,10 @@ exit 1
 	if err := adapter.resolveSDKCredentials(); err != nil {
 		t.Fatalf("resolveSDKCredentials returned error: %v", err)
 	}
-	if adapter.protonUsername != "user@proton.test" {
+	if string(adapter.protonUsername) != "user@proton.test" {
 		t.Fatalf("unexpected resolved username %q", adapter.protonUsername)
 	}
-	if adapter.protonPassword != "super-secret" {
+	if string(adapter.protonPassword) != "super-secret" {
 		t.Fatalf("unexpected resolved password %q", adapter.protonPassword)
 	}
 }
@@ -122,8 +122,8 @@ exit 1
 
 	adapter := NewAdapter()
 	adapter.backendKind = BackendSDK
-	adapter.protonUsername = ""
-	adapter.protonPassword = ""
+	adapter.protonUsername = nil
+	adapter.protonPassword = nil
 	adapter.protonPassCLIBin = script
 	adapter.protonPassUserRef = ""
 	adapter.protonPassPassRef = "pass://Vault/Creds/password"
@@ -131,10 +131,10 @@ exit 1
 	if err := adapter.resolveSDKCredentials(); err != nil {
 		t.Fatalf("resolveSDKCredentials returned error: %v", err)
 	}
-	if adapter.protonUsername != "user-from-info@proton.test" {
+	if string(adapter.protonUsername) != "user-from-info@proton.test" {
 		t.Fatalf("unexpected user-info resolved username %q", adapter.protonUsername)
 	}
-	if adapter.protonPassword != "from-pass" {
+	if string(adapter.protonPassword) != "from-pass" {
 		t.Fatalf("unexpected resolved password %q", adapter.protonPassword)
 	}
 }
@@ -148,8 +148,8 @@ exit 1
 
 	adapter := NewAdapter()
 	adapter.backendKind = BackendSDK
-	adapter.protonUsername = ""
-	adapter.protonPassword = ""
+	adapter.protonUsername = nil
+	adapter.protonPassword = nil
 	adapter.protonPassCLIBin = script
 	adapter.protonPassUserRef = "pass://Vault/Creds/username"
 	adapter.protonPassPassRef = "pass://Vault/Creds/password"
@@ -166,8 +166,8 @@ exit 1
 func TestAdapterResolveSDKCredentialsMandatory(t *testing.T) {
 	adapter := NewAdapter()
 	adapter.backendKind = BackendSDK
-	adapter.protonUsername = ""
-	adapter.protonPassword = ""
+	adapter.protonUsername = nil
+	adapter.protonPassword = nil
 	adapter.protonPassCLIBin = "nonexistent-binary"
 	adapter.protonPassUserRef = ""
 	adapter.protonPassPassRef = ""

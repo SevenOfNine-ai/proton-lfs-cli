@@ -164,7 +164,7 @@ requirements:
     status: covered
     tests:
       - tests/integration/git_lfs_sdk_backend_test.go
-      - tests/integration/git_lfs_proton_drive_cli_test.go
+      - tests/integration/git_lfs_sdk_backend_test.go
     gaps:
       - needs dedicated stress and failure-injection coverage
 
@@ -174,8 +174,8 @@ requirements:
     scope: adapter-bridge
     status: covered
     tests:
-      - cmd/adapter/bridge.go
-      - tests/integration/git_lfs_proton_drive_cli_test.go
+      - cmd/adapter/bridge_test.go
+      - tests/integration/git_lfs_sdk_backend_test.go
 
   - id: CT-CLI-002
     source: docs/security/threat-model.md
@@ -191,8 +191,8 @@ requirements:
     scope: adapter-bridge
     status: covered
     tests:
-      - cmd/adapter/bridge.go
-      - tests/integration/git_lfs_proton_drive_cli_test.go
+      - cmd/adapter/bridge_test.go
+      - tests/integration/git_lfs_sdk_backend_test.go
 
   - id: CT-CLI-004
     source: docs/security/threat-model.md
@@ -201,7 +201,7 @@ requirements:
     status: covered
     tests:
       - tests/integration/credential_security_test.go
-      - tests/integration/git_lfs_proton_drive_cli_test.go
+      - tests/integration/git_lfs_sdk_backend_test.go
 
   - id: CT-CLI-005
     source: docs/architecture/subprocess-integration.md
@@ -217,8 +217,8 @@ requirements:
     scope: adapter-bridge
     status: covered
     tests:
-      - cmd/adapter/bridge.go
-      - tests/integration/git_lfs_proton_drive_cli_test.go
+      - cmd/adapter/bridge_test.go
+      - tests/integration/git_lfs_sdk_backend_test.go
 
   - id: API-BATCH-001
     source: submodules/git-lfs/docs/api/batch.md

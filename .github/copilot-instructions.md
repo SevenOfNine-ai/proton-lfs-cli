@@ -19,7 +19,7 @@ From `submodules/git-lfs/`:
 
 From project root:
 - `go build -o bin/git-lfs-proton-adapter ./cmd/adapter/` - Build Proton custom adapter
-- `make test-sdk` - Test proton-drive-cli bridge
+- `make test` - Test proton-drive-cli bridge
 
 ## Project Conventions
 - Feature requests/discussions: Post to Discussions channel (non-bug topics)
@@ -91,7 +91,7 @@ From project root:
 - 80%+ test coverage required for new code
 - Document all exported functions with TSDoc
 - Use Jest for testing (configured in `package.json`)
-- Run tests before commit: `make test-sdk`
+- Run tests before commit: `make test`
 
 ### Testing Pyramid
 
@@ -171,7 +171,7 @@ make fmt lint          # Format + lint
 
 # Local testing:
 make test              # All Go adapter tests
-make test-sdk          # proton-drive-cli bridge tests
+make test          # proton-drive-cli bridge tests
 
 # CI/CD (GitHub Actions):
 # Automatically runs on push/PR

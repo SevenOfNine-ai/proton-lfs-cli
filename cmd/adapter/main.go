@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	Version                 = "1.0.0"
+	Version                 = "1.0.1"
 	Name                    = "git-lfs-proton-adapter"
 	progressChunkSize int64 = 64 * 1024
 )
@@ -59,8 +59,8 @@ type Adapter struct {
 	backendKind        string
 	backend            TransferBackend
 	credentialProvider string
-	protonUsername     string
-	protonPassword     string
+	protonUsername     []byte
+	protonPassword     []byte
 	protonPassCLIBin   string
 	protonPassUserRef  string
 	protonPassPassRef  string
@@ -312,17 +312,18 @@ func (a *Adapter) handleTerminate(_ *InboundMessage, _ *json.Encoder) error {
 
 // zeroCredentials overwrites in-memory credential buffers with zeros.
 func (a *Adapter) zeroCredentials() {
-	zeroString(&a.protonUsername)
-	zeroString(&a.protonPassword)
+	zeroBytes(a.protonUsername)
+	zeroBytes(a.protonPassword)
 	if cliBackend, ok := a.backend.(*DriveCLIBackend); ok {
 		cliBackend.ZeroCredentials()
 	}
 }
 
-// zeroString replaces a string value with zeros of the same length then clears it.
-// Go strings are immutable, but this replaces the pointer so the old value can be GC'd.
-func zeroString(s *string) {
-	*s = ""
+// zeroBytes overwrites every element of a byte slice with zero.
+func zeroBytes(b []byte) {
+	for i := range b {
+		b[i] = 0
+	}
 }
 
 func (a *Adapter) validateTransferRequest(msg *InboundMessage, requirePath bool) error {
@@ -416,6 +417,9 @@ func (a *Adapter) sendProgressSequence(enc *json.Encoder, oid string, totalSize 
 }
 
 func (a *Adapter) localObjectPath(oid string) string {
+	if len(oid) < 4 {
+		return filepath.Join(a.localStoreDir, oid)
+	}
 	return filepath.Join(a.localStoreDir, oid[:2], oid[2:4], oid)
 }
 
@@ -739,8 +743,8 @@ func main() {
 		} else {
 			adapter.backend = NewDriveCLIBackend(
 				bridge,
-				adapter.protonUsername,
-				adapter.protonPassword,
+				string(adapter.protonUsername),
+				string(adapter.protonPassword),
 			)
 		}
 	default:
