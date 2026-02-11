@@ -246,6 +246,29 @@ jobs:
           chmod +x scripts/mock-pass-cli.sh
           go test -tags integration ./tests/integration/... -run ProtonDriveCli -v
 
+  drive-cli-tests:
+    name: Drive CLI tests (Jest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        working-directory: submodules/proton-drive-cli
+        run: npm install
+
+      - name: Run proton-drive-cli tests
+        working-directory: submodules/proton-drive-cli
+        run: npm test
+
   e2e-mocked:
     name: Mocked E2E pipeline
     runs-on: ubuntu-latest
