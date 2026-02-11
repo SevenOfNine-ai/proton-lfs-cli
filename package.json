@@ -1,7 +1,7 @@
 {
   "name": "proton-git-lfs",
   "private": true,
-  "description": "Workspace root for proton git lfs backend",
+  "description": "Encrypted Git LFS custom transfer adapter for Proton Drive",
   "packageManager": "yarn@4.1.1",
   "workspaces": [
     "proton-lfs-bridge",
