@@ -266,7 +266,9 @@ jobs:
           node-version: "22"
 
       - name: Enable Corepack
-        run: corepack enable
+        run: |
+          corepack enable
+          corepack prepare yarn@4.1.1 --activate
 
       - name: Build vendored SDK
         working-directory: submodules/proton-drive-cli/submodules/sdk/js/sdk
@@ -274,7 +276,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: submodules/proton-drive-cli
-        run: yarn install
+        run: YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install
 
       - name: Build
         working-directory: submodules/proton-drive-cli

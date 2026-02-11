@@ -1390,13 +1390,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noble/hashes@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "@noble/hashes@npm:2.0.1"
-  checksum: 10c0/e81769ce21c3b1c80141a3b99bd001f17edea09879aa936692ae39525477386d696101cd573928a304806efb2b9fa751e1dd83241c67d0c84d30091e85c79bdb
-  languageName: node
-  linkType: hard
-
 "@npmcli/agent@npm:^4.0.0":
   version: 4.0.0
   resolution: "@npmcli/agent@npm:4.0.0"
@@ -1416,18 +1409,6 @@ __metadata:
   dependencies:
     semver: "npm:^7.3.5"
   checksum: 10c0/26e376d780f60ff16e874a0ac9bc3399186846baae0b6e1352286385ac134d900cc5dafaded77f38d77f86898fc923ae1cee9d7399f0275b1aa24878915d722b
-  languageName: node
-  linkType: hard
-
-"@openpgp/web-stream-tools@npm:~0.1.3":
-  version: 0.1.3
-  resolution: "@openpgp/web-stream-tools@npm:0.1.3"
-  peerDependencies:
-    typescript: ">=4.2"
-  peerDependenciesMeta:
-    typescript:
-      optional: true
-  checksum: 10c0/e8f37d523be2b5b04fa86a334f8df45de5213c46e6d1b1b259185233f3e17fee1409030a3fab34300d341c93e7d3d260c62ef1315a786b486737d0ebe114d338
   languageName: node
   linkType: hard
 
@@ -1454,22 +1435,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@protontech/openpgp@npm:^6.2.2, openpgp@npm:@protontech/openpgp@~6.2.2":
-  version: 6.2.2
-  resolution: "@protontech/openpgp@npm:6.2.2"
-  checksum: 10c0/1bd113aee0c16434b31206d1a1a5c0531b29b3f87c59c07534b74f700ebcd370548c904043339b216eb303332c1c2f2bbe7998cd73500849e8eb75fcdb30d42c
+"@protontech/drive-sdk@file:./submodules/sdk/js/sdk::locator=%40sevenofnine-ai%2Fproton-drive-cli%40workspace%3Asubmodules%2Fproton-drive-cli":
+  version: 0.0.1
+  resolution: "@protontech/drive-sdk@file:./submodules/sdk/js/sdk#./submodules/sdk/js/sdk::hash=44322d&locator=%40sevenofnine-ai%2Fproton-drive-cli%40workspace%3Asubmodules%2Fproton-drive-cli"
+  dependencies:
+    "@noble/hashes": "npm:^1.8.0"
+    bcryptjs: "npm:^2.4.3"
+    ttag: "npm:^1.8.7"
+  checksum: 10c0/eb37c23f20833ec038ee1092018083cbc01074abe67da55969456450cc6e42a874b6cecf727aae1fe0fcd288204761b7a0a9014404d8771459d6ca281d4f1e70
   languageName: node
   linkType: hard
 
-"@protontech/pmcrypto@npm:^8.8.1":
-  version: 8.8.1
-  resolution: "@protontech/pmcrypto@npm:8.8.1"
-  dependencies:
-    "@noble/hashes": "npm:^1.8.0"
-    "@openpgp/web-stream-tools": "npm:~0.1.3"
-    jsmimeparser: "npm:@protontech/jsmimeparser@^3.0.2"
-    openpgp: "npm:@protontech/openpgp@~6.2.2"
-  checksum: 10c0/36630c437e8a27cd7bdf2dfb8f609862b70a03f6132a713ff84ab8c93a4da05253f793569de1780b1957fdc95b91e5d74dbadb631afecf1cb534265a97f992b0
+"@protontech/openpgp@npm:^6.2.2, openpgp@npm:@protontech/openpgp@^6.2.2":
+  version: 6.2.2
+  resolution: "@protontech/openpgp@npm:6.2.2"
+  checksum: 10c0/1bd113aee0c16434b31206d1a1a5c0531b29b3f87c59c07534b74f700ebcd370548c904043339b216eb303332c1c2f2bbe7998cd73500849e8eb75fcdb30d42c
   languageName: node
   linkType: hard
 
@@ -1477,9 +1457,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@sevenofnine-ai/proton-drive-cli@workspace:submodules/proton-drive-cli"
   dependencies:
-    "@noble/hashes": "npm:^2.0.1"
+    "@protontech/drive-sdk": "file:./submodules/sdk/js/sdk"
     "@protontech/openpgp": "npm:^6.2.2"
-    "@protontech/pmcrypto": "npm:^8.8.1"
     "@swc/cli": "npm:^0.7.9"
     "@swc/core": "npm:^1.15.3"
     "@types/bcryptjs": "npm:^2.4.6"
@@ -1493,18 +1472,15 @@ __metadata:
     bcryptjs: "npm:^3.0.3"
     boxen: "npm:^7.1.1"
     chalk: "npm:^5.6.2"
-    cli-progress: "npm:^3.12.0"
     cli-table3: "npm:^0.6.5"
     commander: "npm:^14.0.2"
-    dotenv: "npm:^17.2.3"
     fs-extra: "npm:^11.3.2"
     inquirer: "npm:^8.2.7"
     jest: "npm:^29.7.0"
     jwt-decode: "npm:^4.0.0"
     mime-types: "npm:^3.0.2"
+    openpgp: "npm:@protontech/openpgp@^6.2.2"
     ora: "npm:^9.0.0"
-    p-limit: "npm:^7.2.0"
-    p-retry: "npm:^7.1.0"
     ts-jest: "npm:^29.3.2"
     ts-node: "npm:^10.9.2"
     typescript: "npm:^5.9.3"
@@ -2660,6 +2636,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"bcryptjs@npm:^2.4.3":
+  version: 2.4.3
+  resolution: "bcryptjs@npm:2.4.3"
+  checksum: 10c0/b969467087ed7a01ff905a1c6a0c45014ec586248a448ea08370c8ed8bb314bda16a870ca23e0961d7d23bdce1a04c76fa70a9d680be814fa9ac7d8fc61870a3
+  languageName: node
+  linkType: hard
+
 "bcryptjs@npm:^3.0.3":
   version: 3.0.3
   resolution: "bcryptjs@npm:3.0.3"
@@ -3042,15 +3025,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cli-progress@npm:^3.12.0":
-  version: 3.12.0
-  resolution: "cli-progress@npm:3.12.0"
-  dependencies:
-    string-width: "npm:^4.2.3"
-  checksum: 10c0/f464cb19ebde2f3880620a2adfaeeefaec6cb15c8e610c8a659ca1047ee90d69f3bf2fdabbb1fe33ac408678e882e3e0eecdb84ab5df0edf930b269b8a72682d
-  languageName: node
-  linkType: hard
-
 "cli-spinners@npm:^2.5.0":
   version: 2.9.2
   resolution: "cli-spinners@npm:2.9.2"
@@ -3325,6 +3299,18 @@ __metadata:
   dependencies:
     mimic-response: "npm:^3.1.0"
   checksum: 10c0/bd89d23141b96d80577e70c54fb226b2f40e74a6817652b80a116d7befb8758261ad073a8895648a29cc0a5947021ab66705cb542fa9c143c82022b27c5b175e
+  languageName: node
+  linkType: hard
+
+"dedent@npm:1.5.1":
+  version: 1.5.1
+  resolution: "dedent@npm:1.5.1"
+  peerDependencies:
+    babel-plugin-macros: ^3.1.0
+  peerDependenciesMeta:
+    babel-plugin-macros:
+      optional: true
+  checksum: 10c0/f8612cd5b00aab58b18bb95572dca08dc2d49720bfa7201a444c3dae430291e8a06d4928614a6ec8764d713927f44bce9c990d3b8238fca2f430990ddc17c070
   languageName: node
   linkType: hard
 
@@ -4680,13 +4666,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"is-network-error@npm:^1.1.0":
-  version: 1.3.0
-  resolution: "is-network-error@npm:1.3.0"
-  checksum: 10c0/3e85a69e957988db66d5af5412efdd531a5a63e150d1bdd5647cfd4dc54fd89b1dbdd472621f8915233c3176ba1e6922afa8a51a9e363ba4693edf96a294f898
-  languageName: node
-  linkType: hard
-
 "is-number@npm:^7.0.0":
   version: 7.0.0
   resolution: "is-number@npm:7.0.0"
@@ -5729,13 +5708,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsmimeparser@npm:@protontech/jsmimeparser@^3.0.2":
-  version: 3.0.2
-  resolution: "@protontech/jsmimeparser@npm:3.0.2"
-  checksum: 10c0/6610ec7a482c313b9e4ec9ef4c6a62842afa684914740af07df0ff662de00a8a602b7543f8fe68759dbdda0c08e66c258aee97bf26c7943fabdadfa9d85b5e83
-  languageName: node
-  linkType: hard
-
 "json-buffer@npm:3.0.1":
   version: 3.0.1
   resolution: "json-buffer@npm:3.0.1"
@@ -6497,15 +6469,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"p-limit@npm:^7.2.0":
-  version: 7.3.0
-  resolution: "p-limit@npm:7.3.0"
-  dependencies:
-    yocto-queue: "npm:^1.2.1"
-  checksum: 10c0/8030f0ccc67d80d9c12f2b4ed277c5ede151f80a09cb1b143ab0ee597940784f2cf6e07e92d54c023fe9836784329750c25c6cd4488a7a326c0ae0ec2efca982
-  languageName: node
-  linkType: hard
-
 "p-locate@npm:^4.1.0":
   version: 4.1.0
   resolution: "p-locate@npm:4.1.0"
@@ -6528,15 +6491,6 @@ __metadata:
   version: 7.0.4
   resolution: "p-map@npm:7.0.4"
   checksum: 10c0/a5030935d3cb2919d7e89454d1ce82141e6f9955413658b8c9403cfe379283770ed3048146b44cde168aa9e8c716505f196d5689db0ae3ce9a71521a2fef3abd
-  languageName: node
-  linkType: hard
-
-"p-retry@npm:^7.1.0":
-  version: 7.1.1
-  resolution: "p-retry@npm:7.1.1"
-  dependencies:
-    is-network-error: "npm:^1.1.0"
-  checksum: 10c0/d72fb15dace25b8bf72c97a13c8a630ad1deb4667e708955e8806ee38f1d70e9611598ebe57bd9677349256e024a5599292f99aabb203143e0e13f1735e30818
   languageName: node
   linkType: hard
 
@@ -6690,6 +6644,13 @@ __metadata:
   dependencies:
     find-up: "npm:^4.0.0"
   checksum: 10c0/c56bda7769e04907a88423feb320babaed0711af8c436ce3e56763ab1021ba107c7b0cafb11cde7529f669cfc22bffcaebffb573645cbd63842ea9fb17cd7728
+  languageName: node
+  linkType: hard
+
+"plural-forms@npm:^0.5.3":
+  version: 0.5.5
+  resolution: "plural-forms@npm:0.5.5"
+  checksum: 10c0/2707a508924692290c14d277525f232d13ab90d2b0c9b52681e94140a2dd3264aba7066bc370629327a13e882fe57835fd38a805a8bdf554238c0043d0964782
   languageName: node
   linkType: hard
 
@@ -7702,6 +7663,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ttag@npm:^1.8.7":
+  version: 1.8.12
+  resolution: "ttag@npm:1.8.12"
+  dependencies:
+    dedent: "npm:1.5.1"
+    plural-forms: "npm:^0.5.3"
+  checksum: 10c0/6b8f6968174bf599e02a66bddcf3d8e6c478cee0e831044ec5a2518b73b8649b6584d94973cb248fdaa34b5f81636eafdc9513109138c512e3749d611691d7fa
+  languageName: node
+  linkType: hard
+
 "type-check@npm:^0.4.0, type-check@npm:~0.4.0":
   version: 0.4.0
   resolution: "type-check@npm:0.4.0"
@@ -8194,13 +8165,6 @@ __metadata:
   version: 0.1.0
   resolution: "yocto-queue@npm:0.1.0"
   checksum: 10c0/dceb44c28578b31641e13695d200d34ec4ab3966a5729814d5445b194933c096b7ced71494ce53a0e8820685d1d010df8b2422e5bf2cdea7e469d97ffbea306f
-  languageName: node
-  linkType: hard
-
-"yocto-queue@npm:^1.2.1":
-  version: 1.2.2
-  resolution: "yocto-queue@npm:1.2.2"
-  checksum: 10c0/36d4793e9cf7060f9da543baf67c55e354f4862c8d3d34de1a1b1d7c382d44171315cc54abf84d8900b8113d742b830108a1434f4898fb244f9b7e8426d4b8f5
   languageName: node
   linkType: hard
 
