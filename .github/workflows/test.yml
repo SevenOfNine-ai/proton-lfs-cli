@@ -45,6 +45,47 @@ jobs:
           path: coverage.out
           retention-days: 7
 
+  integration-local:
+    name: Integration local backend (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install git-lfs (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-lfs
+
+      - name: Install git-lfs (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install git-lfs
+
+      - name: Verify git-lfs
+        shell: bash
+        run: |
+          git lfs version
+
+      - name: Run local backend integration tests
+        shell: bash
+        run: |
+          go test -tags integration ./tests/integration/... \
+            -run '^TestGitLFSCustomTransfer(StandaloneUpload|DownloadRoundTrip|ConcurrentRoundTrip)$' -v
+
   integration-timeout:
     name: Integration timeout semantics (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -124,8 +165,82 @@ jobs:
         run: |
           go test -tags integration ./tests/integration/... -run '^TestGitLFSCustomTransferConcurrentStressSoak$' -v
 
+  integration-failure-modes:
+    name: Integration failure modes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install git-lfs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-lfs
+          git lfs version
+
+      - name: Run failure mode integration tests
+        run: |
+          go test -tags integration ./tests/integration/... \
+            -run '^TestGitLFSCustomTransfer(RejectsWrongOID|FailsWhenAdapter)' -v
+
+  integration-config-matrix:
+    name: Integration config matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install git-lfs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-lfs
+          git lfs version
+
+      - name: Run direction config matrix tests
+        run: |
+          go test -tags integration ./tests/integration/... \
+            -run '^TestGitLFSCustomTransferDirection' -v
+
+  integration-credentials:
+    name: Integration credential security
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PROTON_PASS_REF_ROOT: pass://Personal/Proton Git LFS
+      PROTON_PASS_USERNAME_REF: pass://Personal/Proton Git LFS/username
+      PROTON_PASS_PASSWORD_REF: pass://Personal/Proton Git LFS/password
+      PASS_MOCK_USERNAME: integration-user@proton.test
+      PASS_MOCK_PASSWORD: integration-password
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run credential security tests (mocked pass-cli)
+        env:
+          PROTON_PASS_CLI_BIN: ${{ github.workspace }}/scripts/mock-pass-cli.sh
+        run: |
+          chmod +x scripts/mock-pass-cli.sh
+          go test -tags integration ./tests/integration/... -run '^TestCredential' -v
+
   bridge-integration:
-    name: Bridge integration (pass refs)
+    name: Bridge integration (mocked)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -151,19 +266,13 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Install git-lfs and pass-cli dependencies
+      - name: Install git-lfs
         run: |
           sudo apt-get update
-          sudo apt-get install -y git-lfs jq curl
+          sudo apt-get install -y git-lfs
           git lfs version
 
-      - name: Install pass-cli
-        run: |
-          curl -fsSL https://proton.me/download/pass-cli/install.sh | bash
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          "$HOME/.local/bin/pass-cli" --version
-
-      - name: Run bridge integration test with pass references only
+      - name: Run bridge integration test with mocked pass-cli and drive-cli
         env:
           PROTON_PASS_CLI_BIN: ${{ github.workspace }}/scripts/mock-pass-cli.sh
           PROTON_DRIVE_CLI_BIN: ${{ github.workspace }}/tests/testdata/mock-proton-drive-cli.js

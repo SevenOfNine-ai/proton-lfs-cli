@@ -113,9 +113,13 @@ test-integration-stress: ## Run high-volume concurrency stress/soak integration 
 	@mkdir -p $(GO_CACHE_DIR)
 	GOCACHE=$(PWD)/$(GO_CACHE_DIR) $(GO) test -tags integration ./tests/integration/... -run '^TestGitLFSCustomTransferConcurrentStressSoak$$' -v
 
-test-integration-proton-drive-cli: ## Run proton-drive-cli bridge integration tests
+test-integration-failure-modes: ## Run failure mode integration tests (wrong OID, crash, hang)
 	@mkdir -p $(GO_CACHE_DIR)
-	GOCACHE=$(PWD)/$(GO_CACHE_DIR) $(GO) test -tags integration ./tests/integration/... -run ProtonDriveCli -v
+	GOCACHE=$(PWD)/$(GO_CACHE_DIR) $(GO) test -tags integration ./tests/integration/... -run '^TestGitLFSCustomTransfer(RejectsWrongOID|FailsWhenAdapter)' -v
+
+test-integration-config-matrix: ## Run direction config matrix integration tests
+	@mkdir -p $(GO_CACHE_DIR)
+	GOCACHE=$(PWD)/$(GO_CACHE_DIR) $(GO) test -tags integration ./tests/integration/... -run '^TestGitLFSCustomTransferDirection' -v
 
 test-integration-credentials: ## Run credential flow security tests
 	@mkdir -p $(GO_CACHE_DIR)
