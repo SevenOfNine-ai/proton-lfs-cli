@@ -58,6 +58,16 @@ func backendErrorDetails(err error) (int, string) {
 	return 500, "transfer backend error"
 }
 
+// OperationCredentials holds per-request credentials sent alongside bridge
+// commands. In pass-cli mode the adapter resolves them once and re-sends them
+// with every operation. In git-credential mode both fields are empty and
+// CredentialProvider is set.
+type OperationCredentials struct {
+	Username           string
+	Password           string
+	CredentialProvider string
+}
+
 type LocalStoreBackend struct {
 	storeDir string
 }
@@ -160,52 +170,96 @@ func (b *LocalStoreBackend) objectPath(oid string) string {
 	return filepath.Join(b.storeDir, oid[:2], oid[2:4], oid)
 }
 
-type SDKServiceBackend struct {
-	client   *SDKClient
-	username string
-	password string
+// DriveCLIBackend communicates directly with proton-drive-cli via subprocess.
+type DriveCLIBackend struct {
+	bridge             *BridgeClient
+	username           []byte
+	password           []byte
+	credentialProvider string
+	authenticated      bool
 }
 
-func NewSDKServiceBackend(client *SDKClient, username, password string) *SDKServiceBackend {
-	return &SDKServiceBackend{
-		client:   client,
-		username: strings.TrimSpace(username),
-		password: strings.TrimSpace(password),
+func NewDriveCLIBackend(bridge *BridgeClient, username, password string) *DriveCLIBackend {
+	return &DriveCLIBackend{
+		bridge:   bridge,
+		username: []byte(strings.TrimSpace(username)),
+		password: []byte(strings.TrimSpace(password)),
 	}
 }
 
-func (b *SDKServiceBackend) Initialize(session *Session) error {
+// ZeroCredentials overwrites credential buffers with zeros.
+func (b *DriveCLIBackend) ZeroCredentials() {
+	for i := range b.password {
+		b.password[i] = 0
+	}
+	for i := range b.username {
+		b.username[i] = 0
+	}
+}
+
+func (b *DriveCLIBackend) operationCredentials() OperationCredentials {
+	if b.credentialProvider == CredentialProviderGitCredential {
+		return OperationCredentials{CredentialProvider: b.credentialProvider}
+	}
+	return OperationCredentials{Username: string(b.username), Password: string(b.password)}
+}
+
+func (b *DriveCLIBackend) Initialize(session *Session) error {
 	if session == nil || !session.Initialized {
 		return newBackendError(500, "session not initialized", nil)
 	}
-	if b.client == nil {
-		return newBackendError(500, "sdk backend client is not configured", nil)
-	}
-	if b.username == "" || b.password == "" {
-		return newBackendError(401, "proton credentials are required for sdk backend", nil)
+	if b.bridge == nil {
+		return newBackendError(500, "drive-cli backend bridge is not configured", nil)
 	}
 
-	token, err := b.client.InitializeSession(b.username, b.password)
-	if err != nil {
-		return mapSDKError(err, "failed to initialize sdk session")
+	creds := b.operationCredentials()
+
+	// In pass-cli mode, credentials must be present
+	if b.credentialProvider != CredentialProviderGitCredential {
+		if len(b.username) == 0 || len(b.password) == 0 {
+			return newBackendError(401, "proton credentials are required for sdk backend", nil)
+		}
 	}
-	session.Token = token
+
+	if err := b.bridge.Authenticate(creds); err != nil {
+		return mapBridgeError(err, "failed to authenticate with proton drive")
+	}
+
+	if err := b.bridge.InitLFSStorage(creds); err != nil {
+		return mapBridgeError(err, "failed to initialize lfs storage")
+	}
+
+	b.authenticated = true
+	session.Token = "direct-bridge"
 	return nil
 }
 
-func (b *SDKServiceBackend) Upload(session *Session, oid, sourcePath string, expectedSize int64) (int64, error) {
+func (b *DriveCLIBackend) Upload(session *Session, oid, sourcePath string, expectedSize int64) (int64, error) {
 	if session == nil || !session.Initialized {
 		return 0, newBackendError(500, "session not initialized", nil)
 	}
-	if session.Token == "" {
-		return 0, newBackendError(401, "sdk session token is not initialized", nil)
+	if !b.authenticated {
+		return 0, newBackendError(401, "drive-cli backend is not authenticated", nil)
 	}
-	if b.client == nil {
-		return 0, newBackendError(500, "sdk backend client is not configured", nil)
+	if b.bridge == nil {
+		return 0, newBackendError(500, "drive-cli backend bridge is not configured", nil)
 	}
 
-	if err := b.client.UploadFile(session.Token, oid, sourcePath); err != nil {
-		return 0, mapSDKError(err, "sdk upload failed")
+	// Dedup: skip upload if OID already exists in remote storage
+	exists, err := b.bridge.Exists(b.operationCredentials(), oid)
+	if err == nil && exists {
+		info, statErr := os.Stat(sourcePath)
+		if statErr != nil {
+			if errors.Is(statErr, os.ErrNotExist) {
+				return 0, newBackendError(404, "upload source file not found", statErr)
+			}
+			return 0, newBackendError(500, "failed to stat upload source file", statErr)
+		}
+		return info.Size(), nil
+	}
+
+	if err := b.bridge.Upload(b.operationCredentials(), oid, sourcePath); err != nil {
+		return 0, mapBridgeError(err, "drive-cli upload failed")
 	}
 
 	info, err := os.Stat(sourcePath)
@@ -221,15 +275,15 @@ func (b *SDKServiceBackend) Upload(session *Session, oid, sourcePath string, exp
 	return info.Size(), nil
 }
 
-func (b *SDKServiceBackend) Download(session *Session, oid string) (string, int64, error) {
+func (b *DriveCLIBackend) Download(session *Session, oid string) (string, int64, error) {
 	if session == nil || !session.Initialized {
 		return "", 0, newBackendError(500, "session not initialized", nil)
 	}
-	if session.Token == "" {
-		return "", 0, newBackendError(401, "sdk session token is not initialized", nil)
+	if !b.authenticated {
+		return "", 0, newBackendError(401, "drive-cli backend is not authenticated", nil)
 	}
-	if b.client == nil {
-		return "", 0, newBackendError(500, "sdk backend client is not configured", nil)
+	if b.bridge == nil {
+		return "", 0, newBackendError(500, "drive-cli backend bridge is not configured", nil)
 	}
 
 	tmpFile, err := os.CreateTemp("", "git-lfs-proton-download-*")
@@ -242,16 +296,16 @@ func (b *SDKServiceBackend) Download(session *Session, oid string) (string, int6
 		return "", 0, newBackendError(500, "failed to create temporary download file", err)
 	}
 
-	if err := b.client.DownloadFile(session.Token, oid, tmpPath); err != nil {
+	if err := b.bridge.Download(b.operationCredentials(), oid, tmpPath); err != nil {
 		_ = os.Remove(tmpPath)
-		return "", 0, mapSDKError(err, "sdk download failed")
+		return "", 0, mapBridgeError(err, "drive-cli download failed")
 	}
 
 	info, err := os.Stat(tmpPath)
 	if err != nil {
 		_ = os.Remove(tmpPath)
 		if errors.Is(err, os.ErrNotExist) {
-			return "", 0, newBackendError(500, "sdk backend did not materialize download output", err)
+			return "", 0, newBackendError(500, "drive-cli backend did not materialize download output", err)
 		}
 		return "", 0, newBackendError(500, "failed to stat downloaded object", err)
 	}
@@ -259,27 +313,60 @@ func (b *SDKServiceBackend) Download(session *Session, oid string) (string, int6
 	return tmpPath, info.Size(), nil
 }
 
-func mapSDKError(err error, fallbackMessage string) error {
+// mapBridgeError converts bridge subprocess errors into BackendErrors with
+// appropriate HTTP-style status codes, matching the logic from the old
+// mapSDKError function.
+func mapBridgeError(err error, fallbackMessage string) error {
 	if err == nil {
 		return nil
 	}
 
 	msg := strings.ToLower(strings.TrimSpace(err.Error()))
 
+	// Parse [code] prefix from bridge error format
+	if strings.HasPrefix(msg, "[") {
+		if idx := strings.Index(msg, "]"); idx > 1 {
+			codeStr := msg[1:idx]
+			rest := strings.TrimSpace(msg[idx+1:])
+			switch codeStr {
+			case "401":
+				return newBackendError(401, "session is invalid or expired", err)
+			case "404":
+				return newBackendError(404, "object not found in drive backend", err)
+			case "407":
+				return newBackendError(407, "captcha verification required — run: proton-drive login", err)
+			case "429":
+				return newBackendError(429, "rate limited by proton api — wait and retry", err)
+			case "503":
+				return newBackendError(503, "drive service is unavailable", err)
+			default:
+				if rest != "" {
+					return newBackendError(502, fallbackMessage, err)
+				}
+			}
+		}
+	}
+
 	switch {
 	case strings.Contains(msg, "invalid or expired session"),
 		strings.Contains(msg, "unauthorized"),
 		strings.Contains(msg, "401"):
-		return newBackendError(401, "sdk session is invalid or expired", err)
+		return newBackendError(401, "session is invalid or expired", err)
 	case strings.Contains(msg, "not found"),
 		strings.Contains(msg, "404"):
-		return newBackendError(404, "object not found in sdk backend", err)
+		return newBackendError(404, "object not found in drive backend", err)
+	case strings.Contains(msg, "captcha"):
+		return newBackendError(407, "captcha verification required — run: proton-drive login", err)
+	case strings.Contains(msg, "rate limit"):
+		return newBackendError(429, "rate limited by proton api — wait and retry", err)
 	case strings.Contains(msg, "timeout"),
 		strings.Contains(msg, "timed out"),
 		strings.Contains(msg, "connection refused"),
 		strings.Contains(msg, "no such host"),
 		strings.Contains(msg, "dial tcp"):
-		return newBackendError(503, "sdk service is unavailable", err)
+		return newBackendError(503, "drive service is unavailable", err)
+	case strings.Contains(msg, "concurrency limit"):
+		return newBackendError(503, "bridge concurrency limit reached", err)
 	default:
 		return newBackendError(502, fallbackMessage, err)
 	}
