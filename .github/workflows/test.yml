@@ -254,7 +254,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: true
+
+      - name: Init drive-cli submodules (non-recursive)
+        working-directory: submodules/proton-drive-cli
+        run: git submodule update --init --depth=1
 
       - name: Setup Node
         uses: actions/setup-node@v4
