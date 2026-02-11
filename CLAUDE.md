@@ -6,32 +6,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Proton Git LFS Backend - A pre-alpha Git LFS custom transfer adapter for Proton Drive that provides encrypted storage for Git LFS objects.
 
-**Current State:** The .NET bridge has been replaced with a TypeScript bridge using `proton-drive-cli`. The project uses a Go+TypeScript+Node.js stack with `pass-cli` for credential management. No .NET SDK required.
+**Current State:** The Go adapter communicates directly with `proton-drive-cli` via subprocess stdin/stdout. No HTTP bridge layer. The project uses a Go+TypeScript+Node.js stack with `pass-cli` for credential management.
 
 ## Architecture
 
 ```
-Go Adapter → Node.js LFS Bridge → proton-drive-cli (TypeScript subprocess) → Proton API
-                ↓
-            pass-cli (credentials)
+Go Adapter → proton-drive-cli (TypeScript subprocess, stdin/stdout JSON) → Proton API
+     ↓
+ pass-cli (credentials)
 ```
 
-This is a multi-language polyglot project with three main components:
+The project has two main components:
 
 1. **Go Adapter** (`cmd/adapter/`): Custom transfer adapter that implements Git LFS protocol
    - `main.go`: Core adapter logic, message handling, protocol implementation
-   - `backend.go`: Storage backend abstraction (local and SDK service backends)
-   - `client.go`: HTTP client for LFS bridge communication
+   - `backend.go`: Storage backend abstraction (local and DriveCLI backends)
+   - `bridge.go`: Direct subprocess client for proton-drive-cli (stdin/stdout JSON protocol)
    - `passcli.go`: Credential resolution via pass-cli integration
    - `config_constants.go`: Environment variable configuration
 
-2. **Node.js LFS Bridge** (`proton-lfs-bridge/`): HTTP bridge between Go adapter and Proton Drive
-   - `server.js`: Express server with REST endpoints (/init, /upload, /download, /list, /refresh)
-   - `lib/protonDriveBridge.js`: TypeScript bridge runner (spawns proton-drive-cli subprocess)
-   - `lib/session.js`: Session token management
-   - `lib/fileManager.js`: Local mock file operations
-
-3. **Submodules** (`submodules/`):
+2. **Submodules** (`submodules/`):
    - `git-lfs`: Upstream Git LFS reference
    - `pass-cli`: Proton Pass CLI for secure credential storage (v1.4.3)
    - `proton-drive-cli`: TypeScript-based Proton Drive client with full auth flow, E2E encryption
@@ -49,28 +43,18 @@ make build-drive-cli    # Build proton-drive-cli TypeScript bridge only
 ### Testing
 ```bash
 make test               # Run Go adapter unit tests
-make test-sdk           # Run Node.js LFS bridge tests (Jest)
 make test-integration   # Run Git LFS integration tests
 make test-integration-sdk  # SDK backend integration (uses pass-cli)
 make test-integration-proton-drive-cli  # proton-drive-cli bridge tests
 make test-integration-credentials       # Credential security tests
 make test-e2e-mock      # Mocked E2E pipeline (no real credentials)
 make test-e2e-real      # Real Proton Drive E2E (requires pass-cli login + build-drive-cli)
-
-# SDK integration with external service
-export PROTON_LFS_BRIDGE_URL='http://127.0.0.1:3000'
-make test-integration-sdk-real
-
-# proton-drive-cli bridge mode
-export SDK_BACKEND_MODE=proton-drive-cli
-make test-integration-sdk
 ```
 
 ### Linting and Formatting
 ```bash
 make fmt                # Format Go code
 make lint               # Run Go vet + golangci-lint
-make lint-sdk           # Run ESLint on LFS bridge
 ```
 
 ### Credential Management
@@ -89,26 +73,58 @@ The adapter supports two backends controlled by `PROTON_LFS_BACKEND`:
    - No authentication required
    - Used for protocol integration tests
 
-2. **sdk**: Proton Drive SDK integration
-   - Routes through `proton-lfs-bridge` Node.js bridge
-   - Requires Proton credentials (resolved exclusively via pass-cli)
-   - Two sub-modes via `SDK_BACKEND_MODE`:
-     - `local`: Mock/deterministic persistence (no real Proton API)
-     - `proton-drive-cli` (or `real` as legacy alias): Uses TypeScript bridge subprocess
+2. **sdk**: Proton Drive integration via proton-drive-cli subprocess
+   - Go adapter spawns `node proton-drive-cli bridge <command>` directly
+   - Requires Proton credentials (resolved via pass-cli or git-credential)
+   - Configurable via `--drive-cli-bin` flag or `PROTON_DRIVE_CLI_BIN` env var
 
-## Credential Resolution (pass-cli Integration)
+## Credential Resolution
+
+The adapter supports two credential providers controlled by `PROTON_CREDENTIAL_PROVIDER`:
+
+### pass-cli (default)
 
 The Go adapter (`cmd/adapter/passcli.go`) resolves credentials via pass-cli:
 
 ```bash
 # Environment variables
+PROTON_CREDENTIAL_PROVIDER=pass-cli    # Default
 PROTON_PASS_CLI_BIN=pass-cli           # Binary path
 PROTON_PASS_REF_ROOT=pass://Personal/Proton Git LFS
 PROTON_PASS_USERNAME_REF=pass://Personal/Proton Git LFS/username
 PROTON_PASS_PASSWORD_REF=pass://Personal/Proton Git LFS/password
 ```
 
-Credentials are resolved exclusively via pass-cli. Direct `PROTON_USERNAME`/`PROTON_PASSWORD` env var fallback has been removed. The adapter calls `pass-cli item view <reference>` and parses JSON or plaintext output.
+Credentials are resolved via pass-cli. The adapter calls `pass-cli item view <reference>` and parses JSON or plaintext output.
+
+### git-credential
+
+Uses Git Credential Manager (GCM) to resolve credentials from macOS Keychain, Windows Credential Manager, or Linux Secret Service:
+
+```bash
+# Environment variable
+PROTON_CREDENTIAL_PROVIDER=git-credential
+
+# Or CLI flag
+--credential-provider git-credential
+```
+
+In this mode, the Go adapter skips pass-cli entirely and sends `{ "credentialProvider": "git-credential" }` to proton-drive-cli via stdin. `proton-drive-cli` then resolves credentials locally via `git credential fill` — credentials never leave the local machine.
+
+**Setup:**
+```bash
+# Store credentials in the system credential helper
+proton-drive credential store -u your.email@proton.me
+
+# Verify credentials are stored
+proton-drive credential verify
+```
+
+**Standalone CLI commands** also accept `--credential-provider git`:
+```bash
+proton-drive ls / --credential-provider git
+proton-drive upload ./file.pdf /Documents --credential-provider git
+```
 
 ## proton-drive-cli Bridge
 
@@ -125,9 +141,9 @@ The `proton-drive-cli` submodule (`submodules/proton-drive-cli/`) provides:
 
 ## Important Configuration Files
 
-- `.env` / `.env.example`: Environment configuration (credentials, URLs, backend modes)
+- `.env` / `.env.example`: Environment configuration (credentials, backend modes)
 - `Makefile`: Build orchestration, test runners, prerequisite checks
-- `package.json`: Root Yarn 4 workspace with `proton-lfs-bridge`
+- `package.json`: Root Yarn 4 workspace with `proton-drive-cli`
 - `go.mod`: Go 1.25 module (minimal, no external deps)
 - `docs/architecture/sdk-capability-matrix.md`: SDK access requirements by mode
 
@@ -146,33 +162,31 @@ make setup JS_PM=npm
 Workspace structure:
 ```json
 {
-  "workspaces": ["proton-lfs-bridge"]
+  "workspaces": ["submodules/proton-drive-cli"]
 }
 ```
 
 ## Testing Strategy
 
-1. **Unit tests**: Go (`*_test.go`), Node.js (`*.test.js`)
+1. **Unit tests**: Go (`*_test.go`) with `TestHelperProcess` pattern for subprocess mocking
 2. **Integration tests**: `tests/integration/` with `-tags integration`
    - Black-box Git LFS protocol validation
    - Timeout and concurrency stress tests
-   - SDK backend roundtrip tests
-   - proton-drive-cli bridge tests
+   - SDK backend roundtrip tests (direct subprocess)
    - Credential security tests
-3. **Security tests**: `proton-lfs-bridge/tests/security/`
-   - Command injection prevention
-   - Subprocess rate limiting
-4. **Mock mode**: `ADAPTER_ALLOW_MOCK_TRANSFERS=true` for protocol-only testing
+3. **Mock mode**: `ADAPTER_ALLOW_MOCK_TRANSFERS=true` for protocol-only testing
 
 ## Security Notes
 
 - Never commit credentials to `.env` (use `.env.example` patterns)
-- Credentials resolve exclusively via pass-cli (`pass://...` references)
-- Credentials flow: pass-cli → Go adapter → LFS bridge → proton-drive-cli (via stdin)
+- Credentials resolve via pass-cli (`pass://...` references) or git-credential (`git credential fill`)
+- Credentials flow (pass-cli): pass-cli → Go adapter → proton-drive-cli (via stdin)
+- Credentials flow (git-credential): git credential helper → proton-drive-cli (local, never over network)
 - Credentials are passed via stdin to subprocesses (never command-line args)
+- Environment allowlist filters subprocess env (only PATH, HOME, NODE_*, MOCK_BRIDGE_*, etc.)
 - OID validation: `/^[a-f0-9]{64}$/i` before subprocess spawn
 - Path traversal prevention: reject paths containing `..`
-- Subprocess pool: max 10 concurrent operations with 5-minute timeout
+- Subprocess pool: max 10 concurrent operations with 5-minute timeout (non-blocking semaphore)
 - Session tokens stored in `~/.proton-drive-cli/session.json` (should be 0600)
 - See `docs/security/threat-model.md` for full threat model
 
@@ -182,10 +196,31 @@ Workspace structure:
 2. `Mock transfers are fail-closed by default` (require explicit opt-in)
 3. CAPTCHA may require manual intervention for new Proton accounts
 
+## Changeset Tracking (MANDATORY)
+
+Every code change **must** be accompanied by updates to two files in the `.changeset/` directory (git-ignored, never committed):
+
+1. **`.changeset/PR_SUMMARY.md`** — A detailed, always-current summary of all changes in the working branch. Update this after every modification. Include:
+   - What changed and why
+   - Files added/modified/deleted
+   - Testing evidence or instructions
+   - Any breaking changes or migration notes
+
+2. **`.changeset/COMMIT_MESSAGE.md`** — A ready-to-use commit message following [Conventional Commits](https://www.conventionalcommits.org/). Update this after every modification. Format:
+   ```
+   <type>(<scope>): <subject>          ← max 72 chars total
+
+   - bullet point details of changes   ← wrap at 72 chars
+   - one bullet per logical change
+   ```
+   Valid types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `ci`, `perf`, `build`.
+
+**Workflow**: Create `.changeset/` dir on first change if it doesn't exist. Update both files after every file edit, creation, or deletion — before moving to the next task.
+
 ## Development Workflow
 
-1. Make changes to Go adapter or Node.js service
-2. Run unit tests: `make test && make test-sdk`
+1. Make changes to Go adapter
+2. Run unit tests: `make test`
 3. Run integration tests: `make test-integration`
 4. For SDK path: Ensure pass-cli login, then `make test-integration-sdk`
 5. Run linting: `make lint`

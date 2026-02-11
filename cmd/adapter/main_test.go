@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 )
 
 const validOID = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -37,12 +39,9 @@ func configureLocalBackend(adapter *Adapter, storeDir string) {
 }
 
 func TestAdapterInit(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	if adapter == nil {
 		t.Fatal("failed to create adapter")
-	}
-	if adapter.sdkServiceURL != "http://localhost:3000" {
-		t.Fatalf("unexpected sdk url: %s", adapter.sdkServiceURL)
 	}
 	if adapter.allowMockTransfers {
 		t.Fatal("mock transfers must be disabled by default")
@@ -50,7 +49,7 @@ func TestAdapterInit(t *testing.T) {
 }
 
 func TestInitResponseIsEmptyObject(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	configureLocalBackend(adapter, t.TempDir())
 
 	msg := InboundMessage{
@@ -70,7 +69,7 @@ func TestInitResponseIsEmptyObject(t *testing.T) {
 }
 
 func TestInitRejectsInvalidOperation(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	msg := InboundMessage{
 		Event:     EventInit,
 		Operation: Direction("invalid"),
@@ -91,7 +90,7 @@ func TestInitRejectsInvalidOperation(t *testing.T) {
 }
 
 func TestUploadFailsClosedWithoutMockMode(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	configureLocalBackend(adapter, "")
 	adapter.session = &Session{Initialized: true}
 
@@ -125,7 +124,7 @@ func TestUploadFailsClosedWithoutMockMode(t *testing.T) {
 }
 
 func TestUploadSucceedsInMockMode(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	adapter.allowMockTransfers = true
 	adapter.session = &Session{Initialized: true}
 
@@ -160,7 +159,7 @@ func TestUploadSucceedsInMockMode(t *testing.T) {
 }
 
 func TestUploadRejectsInvalidOID(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	adapter.allowMockTransfers = true
 	adapter.session = &Session{Initialized: true}
 
@@ -192,7 +191,7 @@ func TestUploadRejectsInvalidOID(t *testing.T) {
 }
 
 func TestUploadRejectsSizeMismatch(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	adapter.allowMockTransfers = true
 	adapter.session = &Session{Initialized: true}
 
@@ -224,7 +223,7 @@ func TestUploadRejectsSizeMismatch(t *testing.T) {
 }
 
 func TestUploadPersistsObjectToLocalStore(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	configureLocalBackend(adapter, t.TempDir())
 	adapter.session = &Session{Initialized: true}
 
@@ -266,7 +265,7 @@ func TestUploadPersistsObjectToLocalStore(t *testing.T) {
 }
 
 func TestDownloadFromLocalStore(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	configureLocalBackend(adapter, t.TempDir())
 	adapter.session = &Session{Initialized: true}
 
@@ -312,7 +311,7 @@ func TestDownloadFromLocalStore(t *testing.T) {
 }
 
 func TestDownloadRejectsCorruptStoredObject(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	configureLocalBackend(adapter, t.TempDir())
 	adapter.session = &Session{Initialized: true}
 
@@ -345,7 +344,7 @@ func TestDownloadRejectsCorruptStoredObject(t *testing.T) {
 }
 
 func TestDownloadFailsClosedWithoutMockMode(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	configureLocalBackend(adapter, "")
 	adapter.session = &Session{Initialized: true}
 
@@ -370,7 +369,7 @@ func TestDownloadFailsClosedWithoutMockMode(t *testing.T) {
 }
 
 func TestDownloadSucceedsInMockMode(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	adapter.allowMockTransfers = true
 	adapter.session = &Session{Initialized: true}
 
@@ -408,8 +407,55 @@ func TestDownloadSucceedsInMockMode(t *testing.T) {
 	_ = os.Remove(complete.Path)
 }
 
+func TestUploadRejectsPathTraversal(t *testing.T) {
+	adapter := NewAdapter()
+	adapter.allowMockTransfers = true
+	adapter.session = &Session{Initialized: true}
+
+	cases := []struct {
+		name string
+		path string
+	}{
+		{"dot-dot segment", "/tmp/../etc/passwd"},
+		{"dot-dot at start", "../secret"},
+		{"dot-dot at end", "/tmp/foo/.."},
+		{"backslash traversal", "/tmp/foo\\..\\bar"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			msg := &InboundMessage{
+				Event: EventUpload,
+				OID:   validOID,
+				Size:  1,
+				Path:  tc.path,
+			}
+			err := adapter.validateTransferRequest(msg, true)
+			if err == nil {
+				t.Fatal("expected path traversal error")
+			}
+			if err.Error() != "path traversal not allowed" {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestValidateFilePathAcceptsLegitPaths(t *testing.T) {
+	cases := []string{
+		"/tmp/git-lfs-objects/ab/cd/abcdef1234",
+		"/home/user/.git/lfs/tmp/upload-1234",
+		"relative/path/to/file.bin",
+		"/var/folders/mr/some-deep/path",
+	}
+	for _, p := range cases {
+		if err := validateFilePath(p); err != nil {
+			t.Fatalf("path %q should be accepted, got: %v", p, err)
+		}
+	}
+}
+
 func TestUnknownEventHandling(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	msg := InboundMessage{Event: "invalid-event"}
 
 	buf := new(bytes.Buffer)
@@ -423,5 +469,83 @@ func TestUnknownEventHandling(t *testing.T) {
 	}
 	if out.Error == nil || out.Error.Code != 400 {
 		t.Fatalf("expected unknown-event error, got %+v", out)
+	}
+}
+
+func TestPrintUsageContainsAllSections(t *testing.T) {
+	var buf bytes.Buffer
+	printUsage(&buf)
+	output := buf.String()
+
+	sections := []string{
+		"NAME",
+		"SYNOPSIS",
+		"DESCRIPTION",
+		"PROTOCOL COMPLIANCE",
+		"BACKENDS",
+		"CREDENTIAL PROVIDERS",
+		"SECURITY",
+		"FLAGS",
+		"ENVIRONMENT VARIABLES",
+		"EXAMPLES",
+	}
+	for _, section := range sections {
+		if !strings.Contains(output, section) {
+			t.Errorf("help output missing section %q", section)
+		}
+	}
+
+	// Verify key content details
+	details := []string{
+		"git-lfs-proton-adapter",
+		"lfs.standalonetransferagent",
+		"proton-drive-cli",
+		"PROTON_LFS_BACKEND",
+		"--backend sdk",
+	}
+	for _, detail := range details {
+		if !strings.Contains(output, detail) {
+			t.Errorf("help output missing detail %q", detail)
+		}
+	}
+}
+
+func TestCleanupStaleTempFiles(t *testing.T) {
+	// Create a temp file with the adapter prefix that looks stale
+	staleFile, err := os.CreateTemp("", "git-lfs-proton-stale-test-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	stalePath := staleFile.Name()
+	staleFile.Close()
+
+	// Backdate the file to make it old enough to be cleaned up
+	oldTime := time.Now().Add(-20 * time.Minute)
+	os.Chtimes(stalePath, oldTime, oldTime)
+
+	// Create a fresh temp file that should NOT be cleaned up (too new)
+	freshFile, err := os.CreateTemp("", "git-lfs-proton-fresh-test-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	freshPath := freshFile.Name()
+	freshFile.Close()
+	defer os.Remove(freshPath)
+
+	removed := cleanupStaleTempFiles(10 * time.Minute)
+
+	if removed < 1 {
+		t.Fatal("expected at least one stale file to be removed")
+	}
+
+	// Stale file should be gone
+	if _, err := os.Stat(stalePath); err == nil {
+		os.Remove(stalePath) // cleanup anyway
+		t.Fatal("stale file should have been removed")
+	}
+
+	// Fresh file should still exist
+	if _, err := os.Stat(freshPath); err != nil {
+		t.Fatal("fresh file should still exist")
 	}
 }

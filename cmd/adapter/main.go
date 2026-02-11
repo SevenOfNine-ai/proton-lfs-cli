@@ -50,15 +50,15 @@ const (
 
 // Adapter manages the transfer session with Git LFS
 type Adapter struct {
-	sdkServiceURL      string
+	driveCLIBin        string
 	logger             *log.Logger
 	session            *Session
 	currentOperation   Direction
-	concurrentWorkers  int
 	allowMockTransfers bool
 	localStoreDir      string
 	backendKind        string
 	backend            TransferBackend
+	credentialProvider string
 	protonUsername     string
 	protonPassword     string
 	protonPassCLIBin   string
@@ -110,16 +110,14 @@ type Session struct {
 }
 
 // NewAdapter creates a new adapter instance
-func NewAdapter(sdkURL string) *Adapter {
+func NewAdapter() *Adapter {
 	passRefRoot := passRefRootFromEnv()
 	passUserRef := envOrDefault(EnvPassUsernameRef, defaultPassUsernameRef(passRefRoot))
 	passPassRef := envOrDefault(EnvPassPasswordRef, defaultPassPasswordRef(passRefRoot))
 
 	adapter := &Adapter{
-		sdkServiceURL:      sdkURL,
 		logger:             log.New(os.Stderr, Name+": ", log.LstdFlags),
 		currentOperation:   "",
-		concurrentWorkers:  DefaultConcurrentWorkers,
 		allowMockTransfers: false,
 		localStoreDir:      envTrim(EnvLocalStoreDir),
 		backendKind:        BackendLocal,
@@ -181,10 +179,6 @@ func (a *Adapter) handleInit(msg *InboundMessage, enc *json.Encoder) error {
 	}
 
 	a.currentOperation = msg.Operation
-	a.concurrentWorkers = msg.ConcurrentTransfers
-	if a.concurrentWorkers <= 0 {
-		a.concurrentWorkers = DefaultConcurrentWorkers
-	}
 
 	// Initialize session with Proton LFS bridge
 	a.session = &Session{
@@ -308,11 +302,27 @@ func (a *Adapter) handleDownload(msg *InboundMessage, enc *json.Encoder) error {
 	})
 }
 
-// handleTerminate closes the transfer session
+// handleTerminate closes the transfer session and zeros credentials
 func (a *Adapter) handleTerminate(_ *InboundMessage, _ *json.Encoder) error {
 	a.logger.Println("Terminating adapter")
 	a.session = nil
+	a.zeroCredentials()
 	return nil
+}
+
+// zeroCredentials overwrites in-memory credential buffers with zeros.
+func (a *Adapter) zeroCredentials() {
+	zeroString(&a.protonUsername)
+	zeroString(&a.protonPassword)
+	if cliBackend, ok := a.backend.(*DriveCLIBackend); ok {
+		cliBackend.ZeroCredentials()
+	}
+}
+
+// zeroString replaces a string value with zeros of the same length then clears it.
+// Go strings are immutable, but this replaces the pointer so the old value can be GC'd.
+func zeroString(s *string) {
+	*s = ""
 }
 
 func (a *Adapter) validateTransferRequest(msg *InboundMessage, requirePath bool) error {
@@ -325,8 +335,27 @@ func (a *Adapter) validateTransferRequest(msg *InboundMessage, requirePath bool)
 	if !oidPattern.MatchString(strings.ToLower(msg.OID)) {
 		return errors.New("invalid oid format")
 	}
-	if requirePath && strings.TrimSpace(msg.Path) == "" {
-		return errors.New("missing upload path")
+	if requirePath {
+		p := strings.TrimSpace(msg.Path)
+		if p == "" {
+			return errors.New("missing upload path")
+		}
+		if err := validateFilePath(p); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// validateFilePath rejects paths that contain null bytes or path traversal segments.
+func validateFilePath(p string) error {
+	if strings.ContainsRune(p, 0) {
+		return errors.New("null bytes not allowed in path")
+	}
+	for _, seg := range strings.FieldsFunc(p, func(r rune) bool { return r == '/' || r == '\\' }) {
+		if seg == ".." {
+			return errors.New("path traversal not allowed")
+		}
 	}
 	return nil
 }
@@ -502,8 +531,138 @@ func (a *Adapter) createTempFile() (*os.File, error) {
 	return os.CreateTemp("", "git-lfs-proton-*")
 }
 
+// cleanupStaleTempFiles removes leftover temp files from previous adapter runs.
+// Files older than the given threshold are considered stale (orphaned on crash).
+func cleanupStaleTempFiles(maxAge time.Duration) int {
+	tmpDir := os.TempDir()
+	entries, err := os.ReadDir(tmpDir)
+	if err != nil {
+		return 0
+	}
+
+	cutoff := time.Now().Add(-maxAge)
+	removed := 0
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if !strings.HasPrefix(name, "git-lfs-proton-") {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		if info.ModTime().Before(cutoff) {
+			if os.Remove(filepath.Join(tmpDir, name)) == nil {
+				removed++
+			}
+		}
+	}
+	return removed
+}
+
+// printUsage writes the adapter's help text to w. It is assigned to flag.Usage
+// so that --help produces a comprehensive reference instead of a bare flag list.
+func printUsage(w io.Writer) {
+	fmt.Fprint(w, `NAME
+    git-lfs-proton-adapter - Git LFS custom transfer agent for Proton Drive
+
+SYNOPSIS
+    Invoked by git-lfs, not directly. Configure via git config:
+
+    git config lfs.customtransfer.proton.path  /path/to/git-lfs-proton-adapter
+    git config lfs.customtransfer.proton.args  "--backend sdk"
+    git config lfs.standalonetransferagent     proton
+
+DESCRIPTION
+    Standalone custom transfer agent implementing the Git LFS custom transfer
+    protocol. Communicates with git-lfs via line-delimited JSON on stdin/stdout.
+    No batch API server required.
+
+    Transfers files to/from Proton Drive with end-to-end encryption via
+    proton-drive-cli subprocess, or to a local filesystem for testing.
+
+PROTOCOL COMPLIANCE (submodules/git-lfs/docs/custom-transfers.md)
+    Implemented:
+      - init (upload/download operation)
+      - upload with SHA-256 integrity verification
+      - download with temp file path return
+      - progress reporting (64KB chunks)
+      - complete with per-object error handling
+      - terminate with credential zeroing
+      - standalone mode (action: null, no batch API)
+      - concurrent instances (git-lfs spawns multiple adapter processes)
+
+    Not implemented:
+      - Real-time streaming progress (progress is post-transfer)
+      - Resume/retry on transient failure
+      - Verify action (not required per spec)
+
+BACKENDS
+    local   Filesystem object store (default). No authentication.
+            Objects stored at: <store-dir>/<oid[0:2]>/<oid[2:4]>/<oid>
+    sdk     Proton Drive via proton-drive-cli subprocess.
+            Objects stored at: /LFS/<oid[0:2]>/<oid[2:4]>/<oid>
+            Upload deduplication via existence check before transfer.
+
+CREDENTIAL PROVIDERS (sdk backend only)
+    pass-cli (default)
+            Credentials resolved from Proton Pass CLI at startup.
+    git-credential
+            Credentials resolved by proton-drive-cli via git credential fill.
+            Setup: proton-drive credential store -u <email>
+
+SECURITY
+    - SHA-256 verification on upload and download
+    - OID validation: /^[a-f0-9]{64}$/i
+    - Path traversal prevention (.. segments, null bytes rejected)
+    - Credentials passed via stdin JSON (not visible in ps)
+    - Credential buffers zeroed on terminate
+    - Subprocess environment filtered via allowlist
+    - Subprocess concurrency limit: 10 max, 5-min timeout
+
+FLAGS
+`)
+	flag.CommandLine.SetOutput(w)
+	flag.CommandLine.PrintDefaults()
+	fmt.Fprint(w, `
+ENVIRONMENT VARIABLES
+    PROTON_LFS_BACKEND             Backend: local or sdk (default: local)
+    PROTON_LFS_LOCAL_STORE_DIR     Local store directory
+    PROTON_CREDENTIAL_PROVIDER     Credential provider: pass-cli or git-credential
+    PROTON_PASS_CLI_BIN            pass-cli binary path (default: pass-cli)
+    PROTON_PASS_REF_ROOT           Pass reference root
+    PROTON_PASS_USERNAME_REF       Pass username reference
+    PROTON_PASS_PASSWORD_REF       Pass password reference
+    PROTON_DRIVE_CLI_BIN           proton-drive-cli path
+    NODE_BIN                       Node.js binary path
+    LFS_STORAGE_BASE               Remote storage base folder (default: LFS)
+    PROTON_APP_VERSION             Proton API app version header
+    ADAPTER_ALLOW_MOCK_TRANSFERS   Allow mock mode (default: false)
+
+EXAMPLES
+    # Local backend (testing)
+    git config lfs.customtransfer.proton.path  ./bin/git-lfs-proton-adapter
+    git config lfs.customtransfer.proton.args  "--backend local --local-store-dir /tmp/lfs"
+    git config lfs.standalonetransferagent     proton
+
+    # Proton Drive with pass-cli
+    git config lfs.customtransfer.proton.path  ./bin/git-lfs-proton-adapter
+    git config lfs.customtransfer.proton.args  "--backend sdk"
+    git config lfs.standalonetransferagent     proton
+
+    # Proton Drive with git-credential
+    git config lfs.customtransfer.proton.path  ./bin/git-lfs-proton-adapter
+    git config lfs.customtransfer.proton.args  "--backend sdk --credential-provider git-credential"
+    git config lfs.standalonetransferagent     proton
+`)
+}
+
 func main() {
-	sdkURL := flag.String("bridge-url", envOrDefault(EnvLFSBridgeURL, DefaultLFSBridgeURL), "URL to Proton LFS bridge service")
+	defaultDriveCLIBin := envOrDefault(EnvDriveCLIBin, DefaultDriveCLIBin)
+	driveCLIBin := flag.String("drive-cli-bin", defaultDriveCLIBin, "Path to proton-drive-cli dist/index.js")
 	defaultBackend := envTrim(EnvBackend)
 	if defaultBackend == "" {
 		defaultBackend = BackendLocal
@@ -521,8 +680,11 @@ func main() {
 	protonPassCLIBin := flag.String("proton-pass-cli", defaultPassCLIBin, "Path to pass-cli binary used to resolve sdk credentials")
 	protonPassUserRef := flag.String("proton-pass-username-ref", defaultPassUserRef, "pass-cli secret reference for Proton username (e.g. pass://Vault/Item/username)")
 	protonPassPassRef := flag.String("proton-pass-password-ref", defaultPassPassRef, "pass-cli secret reference for Proton password (e.g. pass://Vault/Item/password)")
+	defaultCredProvider := envOrDefault(EnvCredentialProvider, DefaultCredentialProvider)
+	credentialProvider := flag.String("credential-provider", defaultCredProvider, "Credential provider: pass-cli (default) or git-credential")
 	debug := flag.Bool("debug", false, "Enable debug logging")
 	showVersion := flag.Bool("version", false, "Print version information")
+	flag.Usage = func() { printUsage(os.Stderr) }
 	flag.Parse()
 
 	if *showVersion {
@@ -530,7 +692,8 @@ func main() {
 		return
 	}
 
-	adapter := NewAdapter(*sdkURL)
+	adapter := NewAdapter()
+	adapter.driveCLIBin = strings.TrimSpace(*driveCLIBin)
 	adapter.allowMockTransfers = *allowMockTransfers
 	adapter.localStoreDir = strings.TrimSpace(*localStoreDir)
 	adapter.backendKind = strings.ToLower(strings.TrimSpace(*backend))
@@ -543,11 +706,18 @@ func main() {
 	}
 	adapter.protonPassUserRef = strings.TrimSpace(*protonPassUserRef)
 	adapter.protonPassPassRef = strings.TrimSpace(*protonPassPassRef)
+	adapter.credentialProvider = strings.ToLower(strings.TrimSpace(*credentialProvider))
+	if adapter.credentialProvider == "" {
+		adapter.credentialProvider = DefaultCredentialProvider
+	}
 
 	if adapter.backendKind == BackendSDK {
-		if err := adapter.resolveSDKCredentials(); err != nil {
-			fmt.Fprintf(os.Stderr, "failed to resolve sdk credentials: %v\n", err)
-			os.Exit(2)
+		if adapter.credentialProvider != CredentialProviderGitCredential {
+			// pass-cli mode: resolve credentials at startup
+			if err := adapter.resolveSDKCredentials(); err != nil {
+				fmt.Fprintf(os.Stderr, "failed to resolve sdk credentials: %v\n", err)
+				os.Exit(2)
+			}
 		}
 	}
 
@@ -555,11 +725,24 @@ func main() {
 	case BackendLocal:
 		adapter.backend = NewLocalStoreBackend(adapter.localStoreDir)
 	case BackendSDK:
-		adapter.backend = NewSDKServiceBackend(
-			NewSDKClient(adapter.sdkServiceURL),
-			adapter.protonUsername,
-			adapter.protonPassword,
-		)
+		bridgeCfg := BridgeClientConfig{
+			CLIBin:      adapter.driveCLIBin,
+			StorageBase: envOrDefault(EnvStorageBase, DefaultStorageBase),
+			AppVersion:  envTrim(EnvAppVersion),
+		}
+		bridge := NewBridgeClient(bridgeCfg)
+
+		if adapter.credentialProvider == CredentialProviderGitCredential {
+			b := NewDriveCLIBackend(bridge, "", "")
+			b.credentialProvider = CredentialProviderGitCredential
+			adapter.backend = b
+		} else {
+			adapter.backend = NewDriveCLIBackend(
+				bridge,
+				adapter.protonUsername,
+				adapter.protonPassword,
+			)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "invalid backend %q (supported: local, sdk)\n", adapter.backendKind)
 		os.Exit(2)
@@ -567,6 +750,11 @@ func main() {
 
 	if !*debug {
 		adapter.logger.SetOutput(io.Discard)
+	}
+
+	// Remove stale temp files from previous adapter runs
+	if removed := cleanupStaleTempFiles(10 * time.Minute); removed > 0 {
+		adapter.logger.Printf("Cleaned up %d stale temp files", removed)
 	}
 
 	// Read from stdin, write to stdout

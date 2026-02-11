@@ -1,11 +1,10 @@
 # Releasing
 
-This project has three independently versioned artifacts:
+This project has two independently versioned artifacts:
 
 | Artifact | Tag pattern | Publish target | Workflow |
 | --- | --- | --- | --- |
 | Go adapter binary | `v*` (e.g. `v0.2.0`) | GitHub Releases | `.github/workflows/build.yml` |
-| LFS bridge npm package | `bridge-v*` (e.g. `bridge-v0.2.0`) | npm (`@sevenofnine-ai/proton-lfs-bridge`) | `.github/workflows/npm-publish.yml` |
 | Proton Drive CLI npm package | `drive-cli-v*` (e.g. `drive-cli-v0.1.0`) | npm (`@sevenofnine-ai/proton-drive-cli`) | `.github/workflows/npm-publish.yml` |
 
 ## Go Adapter
@@ -45,60 +44,11 @@ Or pin a version:
 VERSION=v0.2.0 curl -fsSL .../scripts/install-adapter.sh | bash
 ```
 
-## LFS Bridge (npm)
-
-The npm workflow publishes to the public npm registry using Trusted Publishing (OIDC). No `NPM_TOKEN` secret is needed — authentication is handled via GitHub's OIDC identity provider configured on npmjs.com.
-
-### Prerequisites (one-time)
-
-Trusted Publishing must be configured on npmjs.com:
-
-1. Go to npmjs.com → `@sevenofnine-ai/proton-lfs-bridge` → **Settings** → **Publishing access**
-2. Add trusted publisher:
-   - **Repository owner**: `SevenOfNine-ai`
-   - **Repository name**: `proton-git-lfs`
-   - **Workflow filename**: `npm-publish.yml`
-   - **Environment name**: *(blank)*
-
-### Steps
-
-```bash
-# 1. Ensure tests pass
-make test-sdk
-
-# 2. Bump version in proton-lfs-bridge/package.json
-cd proton-lfs-bridge
-npm version patch   # or minor / major / 0.2.0
-
-# 3. Commit the version bump
-cd ..
-git add proton-lfs-bridge/package.json
-git commit -m "bridge: bump to v0.2.0"
-
-# 4. Tag and push
-git tag bridge-v0.2.0
-git push origin main --tags
-```
-
-The `npm-publish.yml` workflow publishes automatically when the `bridge-v*` tag is pushed.
-
-### Verifying
-
-```bash
-npm view @sevenofnine-ai/proton-lfs-bridge version
-```
-
-Users install via:
-
-```bash
-npm install -g @sevenofnine-ai/proton-lfs-bridge
-```
-
 ## Proton Drive CLI (npm)
 
 Published as `@sevenofnine-ai/proton-drive-cli`. This package provides:
 - CLI tool (`proton-drive`) for standalone Proton Drive operations
-- Shared bridge exports (`@sevenofnine-ai/proton-drive-cli/bridge`) used by proton-lfs-bridge
+- Bridge command (`proton-drive-cli bridge <command>`) used by the Go adapter via direct subprocess invocation
 
 ### Prerequisites (one-time)
 
@@ -151,11 +101,10 @@ npm install @sevenofnine-ai/proton-drive-cli
 
 ## Version Numbering
 
-All three artifacts follow semver independently. A Go adapter release does not require a bridge or drive-cli release and vice versa. When multiple artifacts change in the same PR, create all relevant tags:
+Both artifacts follow semver independently. A Go adapter release does not require a drive-cli release and vice versa. When both artifacts change in the same PR, create both tags:
 
 ```bash
 git tag v0.3.0
-git tag bridge-v0.3.0
 git tag drive-cli-v0.1.1
 git push origin main --tags
 ```
@@ -166,10 +115,6 @@ If Trusted Publishing fails or for the initial publish of a new package:
 
 ```bash
 npm login
-
-# LFS Bridge
-cd proton-lfs-bridge
-npm publish --access public
 
 # Drive CLI
 cd submodules/proton-drive-cli

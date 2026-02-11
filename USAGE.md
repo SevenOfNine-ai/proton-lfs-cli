@@ -31,17 +31,6 @@ INSTALL_DIR=~/.local/bin VERSION=v0.1.0 curl -fsSL \
   https://raw.githubusercontent.com/SevenOfNine-ai/proton-git-lfs/main/scripts/install-adapter.sh | bash
 ```
 
-### LFS Bridge (npm)
-
-If you plan to use the SDK backend (Proton Drive), install the bridge globally:
-
-```bash
-npm install -g @sevenofnine-ai/proton-lfs-bridge
-proton-lfs-bridge   # starts on 127.0.0.1:3000
-```
-
-The npm package includes `proton-drive-cli` as a dependency — no submodule checkout or TypeScript build required.
-
 ### Method A: Build from source (recommended)
 
 ```bash
@@ -82,7 +71,7 @@ ln -s "$(pwd)/bin/git-lfs-proton-adapter" ~/.local/bin/git-lfs-proton-adapter
    git-lfs-proton-adapter --version
    ```
 
-> **Note:** The release binary is only the Go adapter. If you plan to use the SDK backend (Proton Drive), install the bridge via `npm install -g @sevenofnine-ai/proton-lfs-bridge` or clone the repository and build from source (`make build-drive-cli`). The local backend works with just the binary.
+> **Note:** The release binary is only the Go adapter. If you plan to use the SDK backend (Proton Drive), clone the repository and build proton-drive-cli from source (`make build-drive-cli`). The local backend works with just the binary.
 
 ## Configuring a Git Repository
 
@@ -164,9 +153,9 @@ diff /tmp/lfs-test/test.bin /tmp/lfs-clone/test.bin && echo "Roundtrip OK"
 
 ## SDK Backend (Proton Drive)
 
-The SDK backend uploads and downloads LFS objects through Proton Drive with end-to-end encryption. It requires the Node.js LFS bridge service and proton-drive-cli.
+The SDK backend uploads and downloads LFS objects through Proton Drive with end-to-end encryption. The Go adapter spawns `proton-drive-cli bridge` as a subprocess, communicating via JSON over stdin/stdout.
 
-### 1. Build the bridge (if not done already)
+### 1. Build proton-drive-cli (if not done already)
 
 ```bash
 cd /path/to/proton-git-lfs
@@ -175,7 +164,7 @@ make build-all    # or: make build-adapter && make build-drive-cli
 
 ### 2. Store credentials in Proton Pass
 
-The adapter resolves credentials exclusively through `pass-cli`. Direct username/password environment variables are not supported.
+The adapter resolves credentials through `pass-cli` or `git-credential`. Direct username/password environment variables are not supported.
 
 ```bash
 pass-cli login
@@ -200,36 +189,16 @@ Or use the Makefile shorthand:
 eval "$(make -s pass-env)"
 ```
 
-### 4. Start the LFS bridge
-
-If installed via npm:
-
-```bash
-proton-lfs-bridge &
-```
-
-Or from the source checkout:
-
-```bash
-node proton-lfs-bridge/server.js &
-```
-
-The bridge listens on port 3000 by default. Verify it is running:
-
-```bash
-curl -s http://localhost:3000/health | python3 -m json.tool
-```
-
-### 5. Configure the adapter
+### 4. Configure the adapter
 
 ```bash
 cd your-repo
 git config lfs.customtransfer.proton.path /path/to/git-lfs-proton-adapter
-git config lfs.customtransfer.proton.args "--backend=sdk --bridge-url=http://localhost:3000"
+git config lfs.customtransfer.proton.args "--backend=sdk --drive-cli-bin=/path/to/proton-drive-cli"
 git config lfs.standalonetransferagent proton
 ```
 
-### 6. Use Git normally
+### 5. Use Git normally
 
 ```bash
 git add large-file.psd
@@ -241,7 +210,7 @@ LFS objects are encrypted and uploaded to Proton Drive automatically.
 
 ### 2FA and data password
 
-If your Proton account uses two-factor authentication or a separate data password, set these environment variables before starting the bridge:
+If your Proton account uses two-factor authentication or a separate data password, set these environment variables before running transfers:
 
 ```bash
 export PROTON_DATA_PASSWORD='...'
@@ -278,8 +247,7 @@ Debug output is written to stderr, which Git LFS displays during transfers.
 | --- | --- | --- |
 | `transfer "proton": not found` | Adapter binary not on PATH or `lfs.customtransfer.proton.path` is wrong | Verify the path: `git config lfs.customtransfer.proton.path` |
 | `failed to resolve sdk credentials` | pass-cli not logged in or references are wrong | Run `pass-cli login` and check `PROTON_PASS_*` env vars |
-| Bridge returns 401 | Session expired or credentials invalid | Restart the bridge; re-run `pass-cli login` |
-| `ECONNREFUSED` to localhost:3000 | Bridge is not running | Start it: `node proton-lfs-bridge/server.js` |
+| `proton-drive-cli` returns auth error | Session expired or credentials invalid | Re-run `pass-cli login` |
 | CAPTCHA required | New Proton accounts may trigger CAPTCHA | Log in via the Proton web app first to clear the CAPTCHA |
 | `node not found` in Make targets | Node.js is managed by nvm/fnm and not visible to Make's shell | Pass it explicitly: `make test-integration-sdk NODE="$(command -v node)"` |
 
@@ -308,7 +276,7 @@ The adapter reads JSON messages from stdin and writes JSON responses to stdout, 
 | Flag | Environment variable | Default | Description |
 | --- | --- | --- | --- |
 | `--backend` | `PROTON_LFS_BACKEND` | `local` | Transfer backend: `local` or `sdk` |
-| `--bridge-url` | `LFS_BRIDGE_URL` | `http://localhost:3000` | URL of the Proton LFS bridge service (sdk backend only) |
+| `--drive-cli-bin` | `PROTON_DRIVE_CLI_BIN` | (auto-detected) | Path to the proton-drive-cli binary (sdk backend only) |
 | `--local-store-dir` | `PROTON_LFS_LOCAL_STORE_DIR` | (none) | Directory for local object storage (local backend only) |
 | `--allow-mock-transfers` | `ADAPTER_ALLOW_MOCK_TRANSFERS` | `false` | Enable mock transfer simulation (testing only) |
 | `--proton-pass-cli` | `PROTON_PASS_CLI_BIN` | `pass-cli` | Path to the pass-cli binary |

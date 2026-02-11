@@ -75,6 +75,30 @@ if (command === 'auth') {
   });
 }
 
+if (command === 'init') {
+  // Ensure the storage base directory exists
+  fs.mkdirSync(STORAGE_DIR, { recursive: true });
+  write({
+    ok: true,
+    payload: {
+      initialized: true,
+      storageBase: request.storageBase || 'LFS'
+    }
+  });
+}
+
+if (command === 'exists') {
+  const objectPath = storagePath(request.oid);
+  const exists = fs.existsSync(objectPath);
+  write({
+    ok: true,
+    payload: {
+      exists: exists,
+      oid: request.oid
+    }
+  });
+}
+
 if (command === 'upload') {
   if (request.oid === 'missing') {
     write({ ok: false, code: 404, error: 'source object missing' }, 1);

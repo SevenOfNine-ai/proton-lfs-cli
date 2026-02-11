@@ -6,9 +6,8 @@ Pre-alpha Git LFS custom transfer backend for Proton Drive.
 
 - Git LFS custom transfer adapter protocol is implemented and tested.
 - `local` backend roundtrip path is implemented for deterministic integration testing.
-- `sdk` backend path is wired through `proton-lfs-bridge` and integration-tested.
-- `proton-lfs-bridge` uses `proton-drive-cli` (TypeScript) as the bridge to Proton Drive.
-- Bridge mode uses `proton-drive-cli bridge` subprocess with JSON stdin/stdout protocol.
+- `sdk` backend spawns `proton-drive-cli bridge` as a subprocess with JSON stdin/stdout protocol.
+- No intermediate HTTP bridge layer -- the Go adapter communicates directly with proton-drive-cli.
 - Mock transfers are fail-closed by default and require explicit opt-in.
 
 ## Prerequisites
@@ -67,20 +66,11 @@ make check-sdk-prereqs
 make test-integration-sdk
 ```
 
-Proton Drive CLI bridge mode:
+Proton Drive CLI bridge integration path:
 
 ```bash
 pass-cli login
-export SDK_BACKEND_MODE=proton-drive-cli
 make test-integration-sdk
-```
-
-External LFS bridge integration path:
-
-```bash
-pass-cli login
-export PROTON_LFS_BRIDGE_URL='http://127.0.0.1:3000'
-make test-integration-sdk-real
 ```
 
 If your account requires dedicated data password or 2FA code, set:
@@ -122,8 +112,7 @@ Canonical reference root is `pass://Personal/Proton Git LFS`.
 
 ## Repository Layout
 
-- `cmd/adapter/`: Go custom transfer adapter.
-- `proton-lfs-bridge/`: Node LFS bridge service for SDK calls.
+- `cmd/adapter/`: Go custom transfer adapter (spawns proton-drive-cli directly for SDK backend).
 - `tests/integration/`: black-box Git LFS integration tests.
 - `docs/`: project plan, architecture, testing, and operations docs.
 - `submodules/`: upstream references (`git-lfs`, `pass-cli`, `proton-drive-cli`).

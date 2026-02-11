@@ -56,3 +56,6 @@ _book/
 *.swo
 *~
 .DS_Store
+
+# Changeset working files (agent-maintained, never committed)
+.changeset/

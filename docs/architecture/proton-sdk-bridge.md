@@ -1,40 +1,33 @@
 # Proton SDK Bridge
 
-Bridge implementation path: `proton-lfs-bridge/`.
+Bridge implementation: the Go adapter (`cmd/adapter/bridge.go`) spawns `proton-drive-cli bridge <command>` as a subprocess.
 
 ## Architecture
 
 ```
-Go Adapter → Node.js LFS Bridge → proton-drive-cli (TypeScript subprocess) → Proton API
-                ↓
-            pass-cli (credentials)
+Go Adapter → proton-drive-cli subprocess (JSON stdin/stdout) → Proton API
+      ↓
+  pass-cli or git-credential (credentials)
 ```
 
-The bridge spawns `proton-drive-cli bridge <command>` as a subprocess, passing JSON via stdin and reading JSON from stdout. Credentials are never passed via command-line arguments.
-
-## Current Interface
-
-- `POST /init` with `username` + `password`.
-- `POST /upload` with `token`, `oid`, `path`.
-- `POST /download` with `token`, `oid`, `outputPath`.
-- `POST /refresh` with `token`.
-- `GET /list` with `token` and optional `folder`.
-- `GET /health` for readiness checks.
-
-## Backend Modes
-
-- `SDK_BACKEND_MODE=local`: deterministic local persistence prototype.
-- `SDK_BACKEND_MODE=proton-drive-cli` (or `real` as legacy alias): TypeScript bridge using `proton-drive-cli` subprocess for auth/upload/download/list via Proton Drive API with E2E encryption.
-- Integration tests can also target an external LFS bridge via `PROTON_LFS_BRIDGE_URL`.
+The adapter's `BridgeClient` spawns `proton-drive-cli bridge <command>` as a subprocess, passing JSON via stdin and reading JSON from stdout. Credentials are never passed via command-line arguments.
 
 ## Subprocess Communication Protocol
 
-The bridge (`proton-lfs-bridge/lib/protonDriveBridge.js`) communicates with `proton-drive-cli` using:
+The adapter (`cmd/adapter/bridge.go`) communicates with `proton-drive-cli` using:
 
 1. **Spawn**: `node <proton-drive-cli-path> bridge <command>`
 2. **Stdin**: JSON payload with credentials and operation parameters
 3. **Stdout**: JSON response envelope `{ ok: true/false, payload: {...}, error: "...", code: 400-500 }`
 4. **Stderr**: Diagnostic logs (not parsed for responses)
+
+## Bridge Commands
+
+- `init`: Authenticate with Proton API using provided credentials.
+- `upload`: Upload a file to Proton Drive by OID.
+- `download`: Download a file from Proton Drive by OID.
+- `list`: List files in a Proton Drive folder.
+- `refresh`: Refresh an existing session token.
 
 ## Security Considerations
 
@@ -56,11 +49,11 @@ The bridge (`proton-lfs-bridge/lib/protonDriveBridge.js`) communicates with `pro
 
 1. proton-drive-cli session refresh not fully reliable (workaround: re-authenticate on 401).
 2. CAPTCHA may require manual intervention for new accounts.
-3. No streaming for large files (>2GB may timeout — increase `PROTON_DRIVE_CLI_TIMEOUT_MS`).
+3. No streaming for large files (>2GB may timeout -- increase `PROTON_DRIVE_CLI_TIMEOUT_MS`).
 
 ## Next Hardening Targets
 
 1. Improve session reuse to avoid re-authentication on every operation.
-2. Add strict response schema validation between adapter and service.
+2. Add strict response schema validation between adapter and subprocess.
 3. Add fault-injection tests (timeouts, partial writes, session expiry).
 4. Address upstream session refresh issue in proton-drive-cli.

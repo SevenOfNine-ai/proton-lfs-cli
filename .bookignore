@@ -4,7 +4,6 @@ node_modules
 cmd
 adapter
 bin
-proton-lfs-bridge
 submodules
 tests
 scripts

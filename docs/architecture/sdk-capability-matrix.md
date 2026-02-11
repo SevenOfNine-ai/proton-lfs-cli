@@ -8,9 +8,8 @@ This matrix defines which Proton SDK paths are realistically runnable by externa
 
 | Path | Configuration | Needs Internal Proton Access | Uses Your Own Proton Account | Who Can Run It |
 | --- | --- | --- | --- | --- |
-| Local prototype backend | `SDK_BACKEND_MODE=local` | No | Not required (supports test credentials) | Anyone |
-| proton-drive-cli bridge | `SDK_BACKEND_MODE=proton-drive-cli` | No | Yes | Anyone with Node.js 18+ |
-| External real LFS bridge | `PROTON_LFS_BRIDGE_URL=http://<host>:<port>` | Depends on service operator, not local machine | Yes | Anyone with reachable service endpoint |
+| Local backend | `PROTON_LFS_BACKEND=local` | No | Not required (supports test credentials) | Anyone |
+| SDK backend (proton-drive-cli) | `PROTON_LFS_BACKEND=sdk` | No | Yes | Anyone with Node.js 18+ |
 
 ## proton-drive-cli Bridge
 
@@ -26,8 +25,6 @@ Build: `make build-drive-cli`
 
 ## Policy For This Repository
 
-1. Default contributor path is `SDK_BACKEND_MODE=local`.
-2. Real validation for external contributors uses either:
-   - `SDK_BACKEND_MODE=proton-drive-cli` (local bridge), or
-   - `PROTON_LFS_BRIDGE_URL` (external service).
+1. Default contributor path is `PROTON_LFS_BACKEND=local`.
+2. Real validation for external contributors uses `PROTON_LFS_BACKEND=sdk` with proton-drive-cli built locally.
 3. No .NET SDK or internal NuGet access required for any path.

@@ -6,9 +6,9 @@ Date: 2026-02-10
 
 - Adapter protocol loop (`init`, `upload`, `download`, `terminate`) is implemented and testable.
 - Local backend is usable for deterministic end-to-end integration tests.
-- SDK backend path is wired and covered with integration tests against `proton-lfs-bridge`.
-- `proton-lfs-bridge` uses `proton-drive-cli` (TypeScript subprocess) as its bridge to the Proton API, replacing the former .NET C# bridge.
-- SDK integration suite can run against an external service via `PROTON_LFS_BRIDGE_URL` and covers `/init`, `/upload`, `/download`, `/refresh`, and `/list`.
+- SDK backend path is wired and covered with integration tests against `proton-drive-cli` (direct subprocess).
+- The Go adapter spawns `proton-drive-cli bridge <command>` directly via stdin/stdout JSON, replacing the former Node.js HTTP bridge layer.
+- SDK integration suite covers upload, download, list, and token refresh operations.
 - Proton Pass reference-based credential flow is implemented (`PROTON_PASS_*`).
 - Security hardening: OID validation, path traversal prevention, subprocess pool (max 10), per-operation timeout (5 min).
 - Security tests: command injection, rate limiting, credential flow, session file permissions.
@@ -16,13 +16,13 @@ Date: 2026-02-10
 ## Architecture
 
 ```
-Go Adapter → Node.js LFS Bridge → proton-drive-cli (TypeScript subprocess) → Proton API
-                ↓
-            pass-cli (credentials)
+Go Adapter → proton-drive-cli subprocess (stdin/stdout JSON) → Proton API
+      ↓
+  pass-cli (credentials)
 ```
 
-- **No .NET SDK required.** The former C# bridge and `submodules/sdk` have been removed.
-- `SDK_BACKEND_MODE=proton-drive-cli` is the canonical value; `real` is accepted as a legacy alias.
+- **No .NET SDK or Node.js HTTP bridge required.** The Go adapter spawns `proton-drive-cli bridge <command>` directly.
+- The former `proton-lfs-bridge` Node.js HTTP layer has been removed.
 
 ## Not Implemented Yet
 
@@ -50,15 +50,6 @@ SDK backend with proton-drive-cli:
 
 ```bash
 eval "$(make -s pass-env)"
-export SDK_BACKEND_MODE=proton-drive-cli
 make check-sdk-prereqs
 make test-integration-sdk
-```
-
-External real LFS bridge:
-
-```bash
-eval "$(make -s pass-env)"
-export PROTON_LFS_BRIDGE_URL='http://127.0.0.1:3000'
-make test-integration-sdk-real
 ```

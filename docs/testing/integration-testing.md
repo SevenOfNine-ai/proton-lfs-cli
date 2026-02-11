@@ -9,12 +9,12 @@ Integration tests validate Git LFS client behavior against the adapter runtime a
 | Command | Scope |
 | --- | --- |
 | `make test` | Adapter unit tests |
-| `make test-sdk` | Node bridge unit tests |
+| `make test-sdk` | proton-drive-cli unit tests |
 | `make test-integration` | Git LFS + adapter integration suite |
 | `make test-integration-timeout` | Stalled-adapter timeout semantics |
 | `make test-integration-stress` | High-volume concurrent stress/soak |
 | `make test-integration-sdk` | SDK backend integration path (local service by default) |
-| `make test-integration-sdk-real` | SDK backend integration path against external `PROTON_LFS_BRIDGE_URL` |
+| `make test-integration-sdk-real` | SDK backend integration path against real Proton API |
 | `make test-integration-proton-drive-cli` | proton-drive-cli bridge integration tests |
 | `make test-integration-credentials` | Credential flow security tests |
 | `make test-e2e-mock` | Mocked E2E pipeline (no real credentials) |
@@ -24,9 +24,7 @@ Integration tests validate Git LFS client behavior against the adapter runtime a
 
 - `git-lfs` available on `PATH`.
 - Adapter built with `make build`.
-- For local SDK path: Node.js installed and service deps installed (`make setup`).
-- For proton-drive-cli bridge mode (`SDK_BACKEND_MODE=proton-drive-cli`): `make build-drive-cli` must succeed.
-- JS dependencies should be installed from repository root using Yarn 4 via Corepack (`corepack enable && corepack prepare yarn@4.1.1 --activate && yarn install`) when running the local SDK path.
+- For SDK path: Node.js installed and `proton-drive-cli` built (`make build-drive-cli`).
 
 ## Credentials For SDK Tests
 
@@ -46,24 +44,6 @@ If Node is only configured via shell startup files (`~/.zshrc`, `nvm`, `fnm`), r
 ```bash
 make test-integration-sdk NODE="$(command -v node)"
 ```
-
-Default package manager is `yarn` (Yarn 4 via Corepack). To use npm explicitly:
-
-```bash
-make test-integration-sdk JS_PM=npm
-```
-
-To run against the proton-drive-cli bridge mode:
-
-```bash
-export SDK_BACKEND_MODE=proton-drive-cli
-make test-integration-sdk
-```
-
-If you cannot build proton-drive-cli, use one of:
-
-- External real service: set `PROTON_LFS_BRIDGE_URL` and run `make test-integration-sdk-real`.
-- Local prototype path (no real Proton backend): default `SDK_BACKEND_MODE=local`.
 
 See `docs/architecture/sdk-capability-matrix.md` for the full environment matrix.
 
@@ -96,17 +76,7 @@ make check-sdk-prereqs
 1. Choose one runtime path:
 
    - Local prototype path (no real Proton backend): `make test-integration-sdk`
-   - proton-drive-cli bridge: `SDK_BACKEND_MODE=proton-drive-cli make test-integration-sdk`
-   - Real backend via external service: set `PROTON_LFS_BRIDGE_URL` and run `make test-integration-sdk-real`
-
-To run SDK integration tests against an externally running service:
-
-```bash
-export PROTON_LFS_BRIDGE_URL='http://127.0.0.1:3000'
-make test-integration-sdk-real
-```
-
-When `PROTON_LFS_BRIDGE_URL` is set, `make test-integration-sdk` also uses the external service and skips local Node/JS dependency checks.
+   - Real backend via proton-drive-cli: `make test-integration-sdk-real`
 
 ## Mocked E2E Testing
 
@@ -116,12 +86,12 @@ For CI and local testing without real Proton credentials:
 make test-e2e-mock
 ```
 
-This uses `mock-pass-cli.sh` and `mock-proton-drive-cli.js` to exercise the full pipeline: `git lfs push` -> adapter -> LFS bridge -> mock bridge -> mock storage, then clone and pull back.
+This uses `mock-pass-cli.sh` and `mock-proton-drive-cli.js` to exercise the full pipeline: `git lfs push` -> adapter -> mock proton-drive-cli -> mock storage, then clone and pull back.
 
 ## Coverage Expectations
 
 - Real `git-lfs` subprocess path for upload and download.
-- LFS bridge API contract path covering `/init`, `/upload`, `/download`, `/refresh`, and `/list`.
+- proton-drive-cli bridge contract path covering upload, download, list, and token refresh.
 - Standalone mode behavior (`action: null`) coverage.
 - Object-level failure handling coverage (`complete.error`).
 - Wrong-OID response rejection coverage (`progress` and `complete`).
@@ -129,12 +99,11 @@ This uses `mock-pass-cli.sh` and `mock-proton-drive-cli.js` to exercise the full
 - Stalled-adapter timeout semantics coverage (`lfs.activitytimeout`) across OS CI matrix.
 - Concurrent multi-file roundtrip coverage (`lfs.customtransfer.proton.concurrent=true`).
 - High-volume concurrent stress/soak coverage (`PROTON_LFS_STRESS_*`).
-- Mocked E2E pipeline coverage (full Git LFS push/pull through mock bridge).
+- Mocked E2E pipeline coverage (full Git LFS push/pull through mock proton-drive-cli).
 
 ## High-Value Missing Tests
 
-- Real Proton API integration tests are now runnable when an external real LFS bridge is provided via `PROTON_LFS_BRIDGE_URL`.
-- In-repo service defaults to local persistence unless `SDK_BACKEND_MODE=proton-drive-cli` is set.
+- Real Proton API integration tests are runnable via `make test-integration-sdk-real` (requires pass-cli login and built proton-drive-cli).
 
 ## Stress Tuning
 

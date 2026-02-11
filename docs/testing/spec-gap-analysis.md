@@ -14,7 +14,7 @@ Date: 2026-02-09
 
 ## Scope Boundary
 
-This repository currently implements a `custom transfer adapter` prototype and a `Node SDK wrapper prototype`.
+This repository currently implements a `custom transfer adapter` prototype with a `proton-drive-cli` subprocess bridge.
 It does **not** implement a full LFS HTTP server (Batch API, basic transfer API, locking API).
 
 Because of that boundary, full Git LFS API-spec coverage is currently impossible in this codebase without adding new components.
@@ -30,11 +30,11 @@ Because of that boundary, full Git LFS API-spec coverage is currently impossible
 | Custom transfer protocol | Progress + complete event ordering | Covered | `cmd/adapter/main_test.go`, `cmd/adapter/protocol_spec_test.go` | None |
 | Custom transfer protocol | Progress byte semantics (`bytesSoFar`, `bytesSinceLast`) | Covered | `cmd/adapter/protocol_spec_test.go`, `tests/integration/git_lfs_custom_transfer_concurrency_stress_test.go` | None |
 | Custom transfer protocol | Standalone mode (`action: null`) | Covered | `cmd/adapter/protocol_spec_test.go`, `tests/integration/git_lfs_custom_transfer_test.go` | None for local-store backend |
-| Custom transfer protocol | Real `git-lfs` invocation path (black-box) | Covered (upload + download, local + sdk backend) | `tests/integration/git_lfs_custom_transfer_test.go`, `tests/integration/git_lfs_sdk_backend_test.go` | In-repo LFS bridge now has `SDK_BACKEND_MODE=proton-drive-cli`; defaults still local |
+| Custom transfer protocol | Real `git-lfs` invocation path (black-box) | Covered (upload + download, local + sdk backend) | `tests/integration/git_lfs_custom_transfer_test.go`, `tests/integration/git_lfs_sdk_backend_test.go` | SDK backend uses proton-drive-cli subprocess directly; defaults still local |
 | Adapter runtime backend contract | SDK init/upload/download wiring and error mapping | Covered (unit, mocked transport) | `cmd/adapter/backend_test.go` | None at adapter boundary |
-| SDK bridge API contract | `/init`, `/upload`, `/download`, `/refresh`, `/list` behavior | Covered | `tests/integration/git_lfs_sdk_backend_test.go` | proton-drive-cli mode uses per-operation auth and needs performance/lifecycle hardening |
-| proton-drive-cli subprocess | Spawn lifecycle, JSON protocol, timeout, crash recovery | Covered | `proton-lfs-bridge/tests/protonDriveBridge.test.js`, `proton-lfs-bridge/tests/security/rate-limiting.test.js` | None |
-| proton-drive-cli credential security | stdin credential passing, OID validation, path traversal | Covered | `proton-lfs-bridge/tests/security/command-injection.test.js`, `tests/integration/credential_security_test.go` | None |
+| SDK bridge API contract | upload, download, list, refresh behavior | Covered | `tests/integration/git_lfs_sdk_backend_test.go` | proton-drive-cli uses per-operation auth and needs performance/lifecycle hardening |
+| proton-drive-cli subprocess | Spawn lifecycle, JSON protocol, timeout, crash recovery | Covered | `cmd/adapter/bridge.go`, `tests/integration/git_lfs_proton_drive_cli_test.go` | None |
+| proton-drive-cli credential security | stdin credential passing, OID validation, path traversal | Covered | `tests/integration/credential_security_test.go` | None |
 | proton-drive-cli integration | Auth, upload/download roundtrip, list, token refresh | Covered | `tests/integration/git_lfs_proton_drive_cli_test.go` | Requires valid Proton credentials via pass-cli |
 | Custom transfer protocol | Wrong-OID progress/complete rejection (`git-lfs` side) | Covered | `tests/integration/git_lfs_custom_transfer_failure_modes_test.go` | None |
 | Custom transfer protocol | Fatal subprocess behavior (crash/stall/partial write) | Covered | `tests/integration/git_lfs_custom_transfer_failure_modes_test.go`, `tests/integration/git_lfs_custom_transfer_timeout_semantics_test.go`, `cmd/adapter/protocol_spec_test.go` | None |
@@ -49,7 +49,7 @@ Because of that boundary, full Git LFS API-spec coverage is currently impossible
 
 | Priority | Missing Test | Why It Matters |
 | --- | --- | --- |
-| P1 | Soak/load/failure-injection tests for proton-drive-cli bridge | Validates stability, rate-limit behavior, and recovery semantics under sustained load |
+| P1 | Soak/load/failure-injection tests for proton-drive-cli subprocess | Validates stability, rate-limit behavior, and recovery semantics under sustained load |
 | P2 | Streaming large file support (>2GB) | proton-drive-cli may timeout on very large files |
 
 ## Requirement Propagation To Proton SDK Layer
@@ -64,7 +64,7 @@ Yes, requirements can be derived from Git LFS specs and propagated down into the
 | CT-004 | Progress events track transfer progress | Emit valid progress events | SDK API must expose progress callbacks/byte counts |
 | CT-005 | Standalone mode allows `action: null` | Resolve storage purely from object identity | Service must support deterministic OID-to-object mapping without batch action metadata |
 | CT-006 | Verify action is outside custom transfer agent | Do not fake verify semantics in adapter | Service must expose enough metadata for upper layer verify handling |
-| CT-007 | Protocol uses line-delimited JSON | Strict message framing and parsing | Service adapter bridge must avoid mixed stdout protocol contamination |
+| CT-007 | Protocol uses line-delimited JSON | Strict message framing and parsing | proton-drive-cli subprocess must avoid mixed stdout protocol contamination |
 
 ## Practical Answer To “Whole API Spec Coverage”
 

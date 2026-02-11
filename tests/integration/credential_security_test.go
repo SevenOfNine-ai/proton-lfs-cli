@@ -77,7 +77,7 @@ func TestCredentialErrorMessageSanitization(t *testing.T) {
 	// Run the adapter with credentials resolved via mock-pass-cli.
 	// The error messages should NOT contain the password.
 	testPassword := "super-secret-test-password-42"
-	cmd := exec.Command(adapterPath, "--backend=sdk", "--bridge-url=http://127.0.0.1:1")
+	cmd := exec.Command(adapterPath, "--backend=sdk", "--drive-cli-bin=/nonexistent/proton-drive-cli")
 	cmd.Env = append(
 		os.Environ(),
 		"PROTON_PASS_CLI_BIN="+mockPassCLI,

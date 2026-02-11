@@ -12,14 +12,23 @@ const (
 )
 
 const (
-	DefaultLFSBridgeURL      = "http://localhost:3000"
-	DefaultConcurrentWorkers = 4
-	DefaultPassCLIBinary     = "pass-cli"
-	DefaultPassRefRoot       = "pass://Personal/Proton Git LFS"
+	CredentialProviderPassCLI       = "pass-cli"
+	CredentialProviderGitCredential = "git-credential"
 )
 
 const (
-	EnvLFSBridgeURL       = "LFS_BRIDGE_URL"
+	DefaultDriveCLIBin       = "submodules/proton-drive-cli/dist/index.js"
+	DefaultStorageBase       = "LFS"
+	DefaultPassCLIBinary     = "pass-cli"
+	DefaultPassRefRoot       = "pass://Personal/Proton Git LFS"
+	DefaultCredentialProvider = CredentialProviderPassCLI
+)
+
+const (
+	EnvDriveCLIBin       = "PROTON_DRIVE_CLI_BIN"
+	EnvNodeBin           = "NODE_BIN"
+	EnvStorageBase       = "LFS_STORAGE_BASE"
+	EnvAppVersion        = "PROTON_APP_VERSION"
 	EnvBackend            = "PROTON_LFS_BACKEND"
 	EnvAllowMockTransfers = "ADAPTER_ALLOW_MOCK_TRANSFERS"
 	EnvLocalStoreDir      = "PROTON_LFS_LOCAL_STORE_DIR"
@@ -27,6 +36,7 @@ const (
 	EnvPassRefRoot        = "PROTON_PASS_REF_ROOT"
 	EnvPassUsernameRef    = "PROTON_PASS_USERNAME_REF"
 	EnvPassPasswordRef    = "PROTON_PASS_PASSWORD_REF"
+	EnvCredentialProvider = "PROTON_CREDENTIAL_PROVIDER"
 )
 
 func envTrim(key string) string {

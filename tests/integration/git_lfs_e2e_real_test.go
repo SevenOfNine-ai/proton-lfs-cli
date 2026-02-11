@@ -4,12 +4,7 @@ package integration
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,15 +13,9 @@ import (
 )
 
 // requireRealE2EPrereqs skips the test unless the environment is configured for
-// real Proton Drive E2E: SDK_BACKEND_MODE=proton-drive-cli, pass-cli resolves
-// real credentials, and proton-drive-cli is built.
+// real Proton Drive E2E: pass-cli resolves real credentials and proton-drive-cli is built.
 func requireRealE2EPrereqs(t *testing.T) (root string) {
 	t.Helper()
-
-	mode := strings.ToLower(strings.TrimSpace(os.Getenv("SDK_BACKEND_MODE")))
-	if mode != "proton-drive-cli" && mode != "real" {
-		t.Skip("real E2E test skipped: SDK_BACKEND_MODE is not proton-drive-cli")
-	}
 
 	root = repoRoot(t)
 
@@ -50,7 +39,6 @@ func requireRealE2EPrereqs(t *testing.T) (root string) {
 // repo, pull, and verify byte-for-byte fidelity.
 //
 // Prerequisites:
-//   - SDK_BACKEND_MODE=proton-drive-cli
 //   - pass-cli logged in with valid Proton credentials
 //   - proton-drive-cli built (make build-drive-cli)
 //   - Proton Drive has a top-level folder named "LFS"
@@ -84,8 +72,8 @@ func TestE2ERealProtonDrivePipeline(t *testing.T) {
 
 	env := envWithPath(filepath.Dir(gitLFSBin))
 
-	// Start LFS bridge service in proton-drive-cli mode.
-	service := startSDKService(t, root)
+	// Resolve proton-drive-cli binary path.
+	driveCliBin := sdkDriveCliBin(t, root)
 
 	// Build credential env.
 	sdkEnv := sdkCredentialEnv(t, env)
@@ -108,7 +96,7 @@ func TestE2ERealProtonDrivePipeline(t *testing.T) {
 	mustRun(t, repoPath, sdkEnv, gitBin, "remote", "add", "origin", remotePath)
 
 	mustRun(t, repoPath, sdkEnv, gitLFSBin, "install", "--local")
-	configureSDKCustomTransfer(t, repoPath, sdkEnv, gitBin, adapterPath, service.url)
+	configureSDKCustomTransfer(t, repoPath, sdkEnv, gitBin, adapterPath, driveCliBin)
 
 	// Track PNG files with LFS.
 	mustRun(t, repoPath, sdkEnv, gitLFSBin, "track", "*.png")
@@ -137,8 +125,7 @@ func TestE2ERealProtonDrivePipeline(t *testing.T) {
 	mustRun(t, repoPath, sdkEnv, gitBin, "push", "origin", "main")
 	lfsPushOutput := mustRun(t, repoPath, sdkEnv, gitLFSBin, "push", "origin", "main")
 	if strings.Contains(strings.ToLower(lfsPushOutput), "error") {
-		logTail := sdkServiceLogTail(service)
-		t.Fatalf("unexpected error in lfs push output:\n%s\nsdk logs:\n%s", lfsPushOutput, logTail)
+		t.Fatalf("unexpected error in lfs push output:\n%s", lfsPushOutput)
 	}
 
 	t.Logf("upload complete: OID=%s, size=%d bytes", oid, len(originalBytes))
@@ -151,13 +138,12 @@ func TestE2ERealProtonDrivePipeline(t *testing.T) {
 
 	// Install LFS and configure the clone to use our adapter.
 	mustRun(t, clonePath, sdkEnv, gitLFSBin, "install", "--local")
-	configureSDKCustomTransfer(t, clonePath, sdkEnv, gitBin, adapterPath, service.url)
+	configureSDKCustomTransfer(t, clonePath, sdkEnv, gitBin, adapterPath, driveCliBin)
 
 	// Pull LFS objects from Proton Drive.
 	out, err := runCmd(clonePath, sdkEnv, gitLFSBin, "pull", "origin", "main")
 	if err != nil {
-		logTail := sdkServiceLogTail(service)
-		t.Fatalf("expected lfs pull to succeed, err: %v\noutput:\n%s\nsdk logs:\n%s", err, out, logTail)
+		t.Fatalf("expected lfs pull to succeed, err: %v\noutput:\n%s", err, out)
 	}
 
 	// Verify downloaded content matches the original byte-for-byte.
@@ -171,114 +157,4 @@ func TestE2ERealProtonDrivePipeline(t *testing.T) {
 	}
 
 	t.Logf("E2E real pipeline: upload OID=%s, download verified, %d bytes match", oid, len(originalBytes))
-}
-
-// TestE2ERealProtonDriveAPIRoundTrip exercises the SDK service HTTP API directly
-// against real Proton Drive, verifying upload, download, and list operations.
-//
-// Prerequisites: same as TestE2ERealProtonDrivePipeline.
-func TestE2ERealProtonDriveAPIRoundTrip(t *testing.T) {
-	root := requireRealE2EPrereqs(t)
-
-	// Read the test image and append a timestamp nonce to create unique content.
-	// This avoids "file already exists" errors on Proton Drive when the same
-	// OID was uploaded by a previous test run or the pipeline test.
-	testImagePath := filepath.Join(root, "tests", "testdata", "test-image.png")
-	imageBytes, err := os.ReadFile(testImagePath)
-	if err != nil {
-		t.Fatalf("failed to read test image: %v", err)
-	}
-	nonce := []byte(fmt.Sprintf("\n# e2e-api-nonce:%d", time.Now().UnixNano()))
-	sourceBytes := append(imageBytes, nonce...)
-
-	// Compute SHA-256 OID for the unique content.
-	hash := sha256.Sum256(sourceBytes)
-	oid := hex.EncodeToString(hash[:])
-
-	// Start LFS bridge service.
-	service := startSDKService(t, root)
-
-	// Resolve real credentials and authenticate.
-	username, password := sdkResolvedCredentials(t)
-	client := &http.Client{Timeout: 60 * time.Second}
-	token := sdkInitToken(t, client, service, username, password)
-
-	// Upload the test image.
-	uploadPath := filepath.Join(t.TempDir(), "upload.png")
-	if err := os.WriteFile(uploadPath, sourceBytes, 0o600); err != nil {
-		t.Fatalf("failed to create upload file: %v", err)
-	}
-
-	uploadResp, uploadStatus := sdkJSONRequest(t, client, http.MethodPost, service.url+"/upload", map[string]string{
-		"token": token,
-		"oid":   oid,
-		"path":  uploadPath,
-	})
-	if uploadStatus != http.StatusOK {
-		logTail := sdkServiceLogTail(service)
-		t.Fatalf("expected /upload 200, got %d: %s\nsdk logs:\n%s", uploadStatus, string(uploadResp), logTail)
-	}
-
-	t.Logf("upload complete: OID=%s, size=%d bytes", oid, len(sourceBytes))
-
-	// Download and verify byte equality.
-	downloadPath := filepath.Join(t.TempDir(), "download.png")
-	downloadResp, downloadStatus := sdkJSONRequest(t, client, http.MethodPost, service.url+"/download", map[string]string{
-		"token":      token,
-		"oid":        oid,
-		"outputPath": downloadPath,
-	})
-	if downloadStatus != http.StatusOK {
-		logTail := sdkServiceLogTail(service)
-		t.Fatalf("expected /download 200, got %d: %s\nsdk logs:\n%s", downloadStatus, string(downloadResp), logTail)
-	}
-
-	downloadedBytes, err := os.ReadFile(downloadPath)
-	if err != nil {
-		t.Fatalf("failed to read downloaded file: %v", err)
-	}
-	if !bytes.Equal(downloadedBytes, sourceBytes) {
-		t.Fatalf("content mismatch: expected %d bytes, got %d bytes", len(sourceBytes), len(downloadedBytes))
-	}
-
-	t.Logf("download verified: OID=%s, %d bytes match", oid, len(downloadedBytes))
-
-	// Verify the OID appears in /list.
-	listPayload, listStatus := sdkJSONRequest(
-		t,
-		client,
-		http.MethodGet,
-		fmt.Sprintf("%s/list?token=%s&folder=LFS", service.url, url.QueryEscape(token)),
-		nil,
-	)
-	if listStatus != http.StatusOK {
-		logTail := sdkServiceLogTail(service)
-		t.Fatalf("expected /list 200, got %d: %s\nsdk logs:\n%s", listStatus, string(listPayload), logTail)
-	}
-
-	var listResult struct {
-		Files []map[string]any `json:"files"`
-	}
-	if err := json.Unmarshal(listPayload, &listResult); err != nil {
-		t.Fatalf("failed to parse /list response: %v (%s)", err, strings.TrimSpace(string(listPayload)))
-	}
-	if listResult.Files == nil {
-		t.Fatalf("expected files array in /list response: %s", strings.TrimSpace(string(listPayload)))
-	}
-
-	// The OID prefix directory (first 2 chars) should appear in the listing.
-	oidPrefix := oid[:2]
-	found := false
-	for _, f := range listResult.Files {
-		name, _ := f["name"].(string)
-		if strings.Contains(name, oidPrefix) || strings.Contains(name, oid) {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Logf("warning: OID prefix %q not found in /list response (may be nested); files: %v", oidPrefix, listResult.Files)
-	}
-
-	t.Logf("E2E real API roundtrip: upload/download/list verified for OID=%s", oid)
 }

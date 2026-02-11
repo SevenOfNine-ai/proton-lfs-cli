@@ -2,17 +2,17 @@
 
 ## System Boundary
 
-This repository implements a Git LFS custom transfer adapter and a prototype SDK bridge service.
+This repository implements a Git LFS custom transfer adapter that communicates with Proton Drive via proton-drive-cli subprocess.
 It does not implement a full Git LFS HTTP server (`/objects/batch`, basic transfer API, locking API).
 
 ## Components
 
 - `git-lfs` client: invokes the custom transfer agent.
 - `cmd/adapter`: speaks line-delimited JSON protocol with Git LFS.
-- `proton-lfs-bridge`: HTTP bridge called by the adapter in `sdk` mode.
+- `proton-drive-cli`: subprocess spawned by the adapter in `sdk` mode (JSON stdin/stdout protocol).
 - Backend mode:
   - `local`: deterministic local object store for tests.
-  - `sdk`: service call path for Proton integration work.
+  - `sdk`: spawns `proton-drive-cli bridge <command>` for Proton Drive operations.
 
 ## Data Flow
 

@@ -2,13 +2,12 @@
 
 ## Code Style
 - **Go**: Format with `goimports` (enforced by Makefile). Follow standard Go conventions. Use discrete command modules in `commands/` directory.
-- **Multi-language SDKs** (JavaScript, C#, Swift, Kotlin): Each language has its own conventions. Check `submodules/sdk/{js,cs,kt,swift}/` for language-specific patterns.
+- **TypeScript** (proton-drive-cli): Check `submodules/proton-drive-cli/` for TypeScript patterns and conventions.
 
 ## Architecture
-Three-tier integration:
+Two-tier integration:
 1. **Git LFS** (`submodules/git-lfs/`) - Go-based Git extension managing `.gitattributes` patterns, pointer file handling, and upload/download coordination
-2. **Proton Drive SDK** (`submodules/sdk/`) - Multi-language SDKs for encrypted file operations via HTTP to Proton Drive endpoints
-3. **Custom Transfer Adapter** (`cmd/adapter/`) - Subprocess handling JSON-RPC protocol between Git LFS and Proton SDK
+2. **Custom Transfer Adapter** (`cmd/adapter/`) - Subprocess handling JSON-RPC protocol between Git LFS and proton-drive-cli (spawned directly as a subprocess with JSON stdin/stdout)
 
 **Design principle**: End-user-first with minimal required configuration. Server-side push during `git push`, client-side download on checkout. Standalone mode (no LFS API server) enabled via `lfs.standalonetransferagent = proton` config.
 
@@ -20,7 +19,7 @@ From `submodules/git-lfs/`:
 
 From project root:
 - `go build -o bin/git-lfs-proton-adapter ./cmd/adapter/` - Build Proton custom adapter
-- `yarn workspace proton-lfs-bridge test --runInBand` - Test Node.js SDK wrapper
+- `make test-sdk` - Test proton-drive-cli bridge
 
 ## Project Conventions
 - Feature requests/discussions: Post to Discussions channel (non-bug topics)
@@ -58,10 +57,10 @@ From project root:
 
 ## Integration Points
 - **Authentication**: Adapter obtains credentials via git-credential helper, environment variables, or direct Proton auth flow. Session management is adapter responsibility.
-- **SDK HTTP API**: Adapter calls Proton SDK (JavaScript/Node.js LFS bridge). SDK enforces official endpoints only; no proxying allowed.
+- **SDK subprocess**: Adapter spawns `proton-drive-cli bridge <command>` as a subprocess with JSON stdin/stdout. No intermediate HTTP bridge.
 - **File organization**: Proton Drive: `LFS/00/abc123..., LFS/01/def456..., ...` (hierarchical by OID prefix)
 - **Encryption**: SDK handles client-side AES-256 encryption; adapter passes plain bytes to SDK, receives encrypted from Proton
-- **Dependencies**: Cobra (CLI), testify (testing), crypto/networking libraries in Go; Node.js Express + Proton SDK in service
+- **Dependencies**: Minimal Go standard library (no external deps); proton-drive-cli (TypeScript) for SDK operations
 
 ## Security
 - SDK is pre-production: validate authentication flows before production deployment
@@ -86,13 +85,13 @@ From project root:
 - Use `testify` for assertions (require/assert patterns)
 - Run unit tests before commit: `make test-adapter`
 
-**JavaScript/Node.js Code**:
+**TypeScript Code** (proton-drive-cli):
 - Format with Prettier (auto-fixed by pre-commit)
 - Lint with ESLint (enforced in pre-commit)
 - 80%+ test coverage required for new code
-- Document all exported functions with JSDoc
+- Document all exported functions with TSDoc
 - Use Jest for testing (configured in `package.json`)
-- Run tests before commit: `yarn workspace proton-lfs-bridge test --runInBand`
+- Run tests before commit: `make test-sdk`
 
 ### Testing Pyramid
 
@@ -100,21 +99,21 @@ For every module/package, implement:
 
 1. **Unit Tests** (70% of tests)
    - Test individual functions in isolation
-   - Mock external dependencies (LFS bridge, filesystem, network)
+   - Mock external dependencies (proton-drive-cli subprocess, filesystem, network)
    - Test happy path and error conditions
    - Test edge cases and boundary conditions
    - Examples:
      - `cmd/adapter/main_test.go` - Adapter message handling
-     - `proton-lfs-bridge/tests/` - Service endpoints
-   - Files: `*_test.go` (Go) or `*.test.js` (Node.js)
+     - `submodules/proton-drive-cli/src/` - Bridge command tests
+   - Files: `*_test.go` (Go) or `*.test.ts` (TypeScript)
 
 2. **Integration Tests** (20% of tests)
    - Test component interactions
    - Use test fixtures and mock services
-   - Verify adapter ↔ LFS bridge communication
+   - Verify adapter ↔ proton-drive-cli subprocess communication
    - Use in-memory database or temporary files
    - Examples:
-     - Adapter ↔ LFS bridge API calls
+     - Adapter ↔ proton-drive-cli subprocess calls
      - Session management with file operations
    - Location: `tests/integration/` (documented in `docs/testing/integration-testing.md`)
 
@@ -135,14 +134,13 @@ For every module/package, implement:
 - [ ] Unit tests for message parsing (`*_test.go`)
 - [ ] Unit tests for session initialization
 - [ ] Unit tests for error handling
-- [ ] Integration test stub connecting adapter to LFS bridge
+- [ ] Integration test stub connecting adapter to proton-drive-cli
 - [ ] 80%+ coverage: `go test -cover ./cmd/adapter/...`
 
-**Phase 4 (LFS Bridge)**:
-- [ ] Unit tests for each HTTP endpoint
-- [ ] Unit tests for session management (`jest --coverage`)
-- [ ] Unit tests for file operations
-- [ ] Integration tests: LFS bridge ↔ Proton SDK
+**Phase 4 (Bridge Subprocess)**:
+- [ ] Unit tests for bridge client (`bridge.go`)
+- [ ] Unit tests for subprocess JSON protocol
+- [ ] Integration tests: adapter ↔ proton-drive-cli subprocess
 - [ ] 80%+ coverage for new code
 
 **Phase 5 (Integration)**:
@@ -172,9 +170,8 @@ make test-adapter      # Unit tests + coverage
 make fmt lint          # Format + lint
 
 # Local testing:
-make test              # All tests (Go + Node.js)
-make test-watch        # Watch mode
-yarn workspace proton-lfs-bridge test --watch
+make test              # All Go adapter tests
+make test-sdk          # proton-drive-cli bridge tests
 
 # CI/CD (GitHub Actions):
 # Automatically runs on push/PR
@@ -239,5 +236,4 @@ When implementing features, consult:
 - **Git LFS API**: [submodules/git-lfs/docs/api/](submodules/git-lfs/docs/api/)
 - **Adapter registration**: `submodules/git-lfs/tq/manifest.go` (configureCustomAdapters)
 - **Custom adapter implementation**: `submodules/git-lfs/tq/custom.go` (subprocess communication)
-- **Node.js SDK**: `submodules/sdk/js/sdk/src/`
-- **Proton constraints**: [submodules/sdk/README.md](submodules/sdk/README.md)
+- **proton-drive-cli**: `submodules/proton-drive-cli/`

@@ -14,7 +14,7 @@ import (
 )
 
 func TestRunSpecSequenceUploadDownloadTerminate(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	adapter.allowMockTransfers = true
 
 	tmpDir := t.TempDir()
@@ -59,7 +59,7 @@ func TestRunSpecSequenceUploadDownloadTerminate(t *testing.T) {
 }
 
 func TestRunPerTransferErrorDoesNotTerminateProcess(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	adapter.allowMockTransfers = true
 
 	tmpDir := t.TempDir()
@@ -94,7 +94,7 @@ func TestRunPerTransferErrorDoesNotTerminateProcess(t *testing.T) {
 }
 
 func TestRunInvalidInitReturnsProtocolErrorAndContinues(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	adapter.allowMockTransfers = true
 
 	tmpDir := t.TempDir()
@@ -128,7 +128,7 @@ func TestRunInvalidInitReturnsProtocolErrorAndContinues(t *testing.T) {
 }
 
 func TestRunUploadProgressOrderingAndByteSemantics(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	configureLocalBackend(adapter, t.TempDir())
 
 	tmpDir := t.TempDir()
@@ -199,7 +199,7 @@ func TestRunUploadProgressOrderingAndByteSemantics(t *testing.T) {
 }
 
 func TestRunDownloadProgressOrderingAndByteSemantics(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	configureLocalBackend(adapter, t.TempDir())
 
 	payload := []byte("download-progress-bytes")
@@ -266,7 +266,7 @@ func (w *failAfterNWriter) Write(p []byte) (int, error) {
 }
 
 func TestRunReturnsErrorOnPartialWriteFailure(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	adapter.allowMockTransfers = true
 
 	tmpDir := t.TempDir()
@@ -292,7 +292,7 @@ func TestRunReturnsErrorOnPartialWriteFailure(t *testing.T) {
 }
 
 func TestRunUploadMultiChunkProgressMonotonic(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	configureLocalBackend(adapter, t.TempDir())
 
 	size := int(progressChunkSize*2 + 17)
@@ -352,7 +352,7 @@ func TestRunUploadMultiChunkProgressMonotonic(t *testing.T) {
 }
 
 func TestRunDownloadMultiChunkProgressMonotonic(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	configureLocalBackend(adapter, t.TempDir())
 
 	size := int(progressChunkSize*3 + 11)

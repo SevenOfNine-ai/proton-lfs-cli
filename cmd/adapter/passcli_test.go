@@ -82,7 +82,7 @@ echo "missing reference" >&2
 exit 1
 `)
 
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	adapter.backendKind = BackendSDK
 	adapter.protonUsername = ""
 	adapter.protonPassword = ""
@@ -120,7 +120,7 @@ echo "missing reference" >&2
 exit 1
 `)
 
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	adapter.backendKind = BackendSDK
 	adapter.protonUsername = ""
 	adapter.protonPassword = ""
@@ -146,7 +146,7 @@ echo "not found" >&2
 exit 1
 `)
 
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	adapter.backendKind = BackendSDK
 	adapter.protonUsername = ""
 	adapter.protonPassword = ""
@@ -164,7 +164,7 @@ exit 1
 }
 
 func TestAdapterResolveSDKCredentialsMandatory(t *testing.T) {
-	adapter := NewAdapter("http://localhost:3000")
+	adapter := NewAdapter()
 	adapter.backendKind = BackendSDK
 	adapter.protonUsername = ""
 	adapter.protonPassword = ""

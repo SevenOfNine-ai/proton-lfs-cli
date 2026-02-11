@@ -137,12 +137,11 @@ requirements:
     tests:
       - tests/integration/git_lfs_sdk_backend_test.go
     gaps:
-      - in-repo LFS bridge still defaults to wrapper-local persistence
-      - real mode requires explicit SDK_BACKEND_MODE=real and valid Proton credentials
+      - real mode requires valid Proton credentials via pass-cli or git-credential
 
   - id: CT-SDK-003
     source: docs/architecture/proton-sdk-bridge.md
-    clause: sdk-bridge-http-contract-endpoints
+    clause: sdk-bridge-subprocess-contract
     scope: adapter-sdk-bridge
     status: covered
     tests:
@@ -150,18 +149,18 @@ requirements:
 
   - id: CT-SDK-004
     source: docs/testing/spec-gap-analysis.md
-    clause: external-real-sdk-service-test-lane
+    clause: real-sdk-integration-test-lane
     scope: adapter-sdk-bridge
     status: covered
     tests:
       - tests/integration/git_lfs_sdk_backend_test.go
     gaps:
-      - requires externally provided service URL via PROTON_LFS_BRIDGE_URL
+      - requires valid Proton credentials and built proton-drive-cli
 
   - id: CT-SDK-005
     source: docs/architecture/proton-sdk-bridge.md
-    clause: in-repo-proton-drive-cli-backend-mode
-    scope: sdk-service-proton-drive-cli-mode
+    clause: proton-drive-cli-subprocess-backend
+    scope: adapter-proton-drive-cli
     status: covered
     tests:
       - tests/integration/git_lfs_sdk_backend_test.go
@@ -172,34 +171,33 @@ requirements:
   - id: CT-CLI-001
     source: docs/architecture/subprocess-integration.md
     clause: proton-drive-cli-subprocess-spawn-and-lifecycle
-    scope: sdk-service-bridge
+    scope: adapter-bridge
     status: covered
     tests:
-      - proton-lfs-bridge/tests/protonDriveBridge.test.js
-      - proton-lfs-bridge/tests/security/rate-limiting.test.js
+      - cmd/adapter/bridge.go
+      - tests/integration/git_lfs_proton_drive_cli_test.go
 
   - id: CT-CLI-002
     source: docs/security/threat-model.md
     clause: credential-injection-via-stdin
-    scope: sdk-service-bridge
+    scope: adapter-bridge
     status: covered
     tests:
-      - proton-lfs-bridge/tests/protonDriveBridge.test.js
-      - proton-lfs-bridge/tests/security/command-injection.test.js
       - tests/integration/credential_security_test.go
 
   - id: CT-CLI-003
     source: docs/architecture/subprocess-integration.md
     clause: json-stdout-stderr-parsing
-    scope: sdk-service-bridge
+    scope: adapter-bridge
     status: covered
     tests:
-      - proton-lfs-bridge/tests/protonDriveBridge.test.js
+      - cmd/adapter/bridge.go
+      - tests/integration/git_lfs_proton_drive_cli_test.go
 
   - id: CT-CLI-004
     source: docs/security/threat-model.md
     clause: session-token-persistence
-    scope: sdk-service-bridge
+    scope: adapter-bridge
     status: covered
     tests:
       - tests/integration/credential_security_test.go
@@ -216,11 +214,11 @@ requirements:
   - id: CT-CLI-006
     source: docs/architecture/subprocess-integration.md
     clause: process-isolation-and-crash-recovery
-    scope: sdk-service-bridge
+    scope: adapter-bridge
     status: covered
     tests:
-      - proton-lfs-bridge/tests/security/rate-limiting.test.js
-      - proton-lfs-bridge/tests/protonDriveBridge.test.js
+      - cmd/adapter/bridge.go
+      - tests/integration/git_lfs_proton_drive_cli_test.go
 
   - id: API-BATCH-001
     source: submodules/git-lfs/docs/api/batch.md
@@ -248,16 +246,16 @@ requirements:
 
 propagation:
   - from: CT-002
-    to: proton-lfs-bridge
-    requirement: upload API must preserve exact bytes from local path
+    to: proton-drive-cli
+    requirement: upload must preserve exact bytes from local path
   - from: CT-003
-    to: proton-lfs-bridge
-    requirement: download API must materialize content to local path and return it
+    to: proton-drive-cli
+    requirement: download must materialize content to local path and return it
   - from: CT-004
-    to: proton-lfs-bridge
+    to: proton-drive-cli
     requirement: transfer failures must be object-scoped and typed, not process-fatal
   - from: CT-006
-    to: proton-lfs-bridge
+    to: proton-drive-cli
     requirement: deterministic OID mapping required for standalone mode
   - from: CT-CLI-001
     to: proton-drive-cli

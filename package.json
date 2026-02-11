@@ -4,7 +4,6 @@
   "description": "Encrypted Git LFS custom transfer adapter for Proton Drive",
   "packageManager": "yarn@4.1.1",
   "workspaces": [
-    "proton-lfs-bridge",
     "submodules/proton-drive-cli"
   ],
   "version": ""

@@ -16,7 +16,6 @@ Canonical convention in this repository:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `LFS_BRIDGE_URL` | `http://localhost:3000` | LFS bridge base URL |
 | `PROTON_LFS_BACKEND` | `local` | Adapter backend (`local`, `sdk`) |
 | `ADAPTER_ALLOW_MOCK_TRANSFERS` | `false` | Enables mock transfer mode |
 | `PROTON_LFS_LOCAL_STORE_DIR` | empty | Local backend object root |
@@ -24,6 +23,7 @@ Canonical convention in this repository:
 | `PROTON_PASS_REF_ROOT` | `pass://Personal/Proton Git LFS` | Pass ref root |
 | `PROTON_PASS_USERNAME_REF` | `${PROTON_PASS_REF_ROOT}/username` | Pass username ref |
 | `PROTON_PASS_PASSWORD_REF` | `${PROTON_PASS_REF_ROOT}/password` | Pass password ref |
+| `PROTON_DRIVE_CLI_BIN` | `submodules/proton-drive-cli/dist/index.js` | Path to proton-drive-cli entry point |
 
 Credentials are resolved exclusively via pass-cli. Direct environment variable fallback (`PROTON_USERNAME`/`PROTON_PASSWORD`) has been removed.
 
@@ -42,13 +42,12 @@ eval "$(./scripts/export-pass-env.sh)"
 
 The script verifies that `pass-cli` is authenticated, validates both references, sets `PROTON_PASS_*`, and unsets plaintext credential vars.
 
-## LFS Bridge Constants
+## proton-drive-cli Constants
 
-When running `proton-lfs-bridge` with `SDK_BACKEND_MODE=proton-drive-cli` (or `real` as legacy alias):
+The Go adapter spawns `proton-drive-cli bridge <command>` directly as a subprocess:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `SDK_BACKEND_MODE` | `local` | `proton-drive-cli` enables the TypeScript bridge (also accepts `real` as alias) |
 | `PROTON_APP_VERSION` | `external-drive-protonlfs@dev` | Proton client app version header |
 | `PROTON_DATA_PASSWORD` | empty | Optional dedicated data password fallback |
 | `PROTON_SECOND_FACTOR_CODE` | empty | Optional 2FA code fallback |

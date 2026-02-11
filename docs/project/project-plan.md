@@ -20,10 +20,10 @@ The backend is "done" only when all conditions below are met:
 | Area | Status | Notes |
 | --- | --- | --- |
 | Adapter protocol loop | Yellow | Basic flow exists; real transfer implementation absent |
-| Proton data path | Yellow | Local prototype remains default; proton-drive-cli TypeScript bridge available via `SDK_BACKEND_MODE=proton-drive-cli` |
+| Proton data path | Yellow | Local prototype remains default; proton-drive-cli bridge available via direct subprocess invocation |
 | Auth/session design | Yellow | pass-cli mandatory for credential resolution; no direct env var fallback |
-| Test quality | Yellow | Go tests improved; Node tests cover config, bridge, and security; mocked E2E pipeline tests added |
-| CI/CD | Yellow | SDK unit tests, bridge tests, and mocked E2E jobs added; coverage and release hardening still needed |
+| Test quality | Yellow | Go tests improved; mocked E2E pipeline tests added |
+| CI/CD | Yellow | SDK unit tests and mocked E2E jobs added; coverage and release hardening still needed |
 | Security posture | Yellow | Credential lockdown via pass-cli, threat model documented, security tests in place; audit still needed |
 
 ## Delivery Phases
