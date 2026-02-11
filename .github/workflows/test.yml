@@ -273,6 +273,10 @@ jobs:
         working-directory: submodules/proton-drive-cli
         run: npm install
 
+      - name: Build
+        working-directory: submodules/proton-drive-cli
+        run: npm run build
+
       - name: Run proton-drive-cli tests
         working-directory: submodules/proton-drive-cli
         run: npm test
