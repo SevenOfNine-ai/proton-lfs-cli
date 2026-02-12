@@ -67,6 +67,10 @@ func setupMenu() {
 
 	systray.AddSeparator()
 
+	mAutoStart := systray.AddMenuItemCheckbox("Launch at Login", "Start Proton Git LFS when you log in", isAutoStartEnabled())
+
+	systray.AddSeparator()
+
 	mQuit := systray.AddMenuItem("Quit", "Quit Proton Git LFS tray")
 
 	// Event loop
@@ -81,6 +85,8 @@ func setupMenu() {
 				launchCredentialSetup()
 			case <-mRegister.ClickedCh:
 				registerGitLFS()
+			case <-mAutoStart.ClickedCh:
+				toggleAutoStart(mAutoStart)
 			case <-mQuit.ClickedCh:
 				systray.Quit()
 				return
@@ -137,6 +143,18 @@ func registerGitLFS() {
 	}
 	_ = exec.Command("git", "config", "--global", "lfs.customtransfer.proton.args", args).Run()
 	_ = exec.Command("git", "config", "--global", "lfs.standalonetransferagent", "proton").Run()
+}
+
+func toggleAutoStart(item *systray.MenuItem) {
+	if item.Checked() {
+		if err := setAutoStart(false); err == nil {
+			item.Uncheck()
+		}
+	} else {
+		if err := setAutoStart(true); err == nil {
+			item.Check()
+		}
+	}
 }
 
 // terminalCommand returns an exec.Cmd that opens a terminal and runs the given shell snippet.
