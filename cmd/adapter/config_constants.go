@@ -17,18 +17,18 @@ const (
 )
 
 const (
-	DefaultDriveCLIBin       = "submodules/proton-drive-cli/dist/index.js"
-	DefaultStorageBase       = "LFS"
-	DefaultPassCLIBinary     = "pass-cli"
-	DefaultPassRefRoot       = "pass://Personal/Proton Git LFS"
+	DefaultDriveCLIBin        = "submodules/proton-drive-cli/dist/index.js"
+	DefaultStorageBase        = "LFS"
+	DefaultPassCLIBinary      = "pass-cli"
+	DefaultPassRefRoot        = "pass://Personal/Proton Git LFS"
 	DefaultCredentialProvider = CredentialProviderPassCLI
 )
 
 const (
-	EnvDriveCLIBin       = "PROTON_DRIVE_CLI_BIN"
-	EnvNodeBin           = "NODE_BIN"
-	EnvStorageBase       = "LFS_STORAGE_BASE"
-	EnvAppVersion        = "PROTON_APP_VERSION"
+	EnvDriveCLIBin        = "PROTON_DRIVE_CLI_BIN"
+	EnvNodeBin            = "NODE_BIN"
+	EnvStorageBase        = "LFS_STORAGE_BASE"
+	EnvAppVersion         = "PROTON_APP_VERSION"
 	EnvBackend            = "PROTON_LFS_BACKEND"
 	EnvAllowMockTransfers = "ADAPTER_ALLOW_MOCK_TRANSFERS"
 	EnvLocalStoreDir      = "PROTON_LFS_LOCAL_STORE_DIR"

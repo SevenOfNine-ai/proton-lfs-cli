@@ -47,6 +47,7 @@ VERSION=v0.2.0 curl -fsSL .../scripts/install-adapter.sh | bash
 ## Proton Drive CLI (npm)
 
 Published as `@sevenofnine-ai/proton-drive-cli`. This package provides:
+
 - CLI tool (`proton-drive`) for standalone Proton Drive operations
 - Bridge command (`proton-drive-cli bridge <command>`) used by the Go adapter via direct subprocess invocation
 
@@ -61,7 +62,7 @@ Trusted Publishing must be configured on npmjs.com:
    - **Workflow filename**: `npm-publish.yml`
    - **Environment name**: *(blank)*
 
-### Steps
+### npm Publish Steps
 
 ```bash
 # 1. Ensure tests pass
@@ -83,7 +84,7 @@ git push origin main --tags
 
 The `npm-publish.yml` workflow publishes automatically when the `drive-cli-v*` tag is pushed. The workflow checks out submodules, installs deps, builds TypeScript, runs tests, then publishes.
 
-### Verifying
+### Verifying npm Publish
 
 ```bash
 npm view @sevenofnine-ai/proton-drive-cli version

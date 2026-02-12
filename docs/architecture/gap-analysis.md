@@ -5,7 +5,7 @@
 Reference: `submodules/git-lfs/docs/custom-transfers.md`
 
 | Spec Requirement | Status | Location |
-|---|---|---|
+| --- | --- | --- |
 | Line-delimited JSON on stdin/stdout | DONE | `main.go` json.Encoder/Decoder |
 | `init` with operation/remote/concurrent | DONE | `handleInit()` |
 | `init` success returns `{}` | DONE | `handleInit()` |
@@ -29,7 +29,7 @@ Reference: `submodules/git-lfs/docs/custom-transfers.md`
 ## 2. Adapter Features to Bridge Commands
 
 | Adapter Feature | Bridge Command | Status |
-|---|---|---|
+| --- | --- | --- |
 | Auth (pass-cli) | `bridge auth` | DONE |
 | Auth (git-credential) | `bridge auth` | DONE |
 | LFS storage init | `bridge init` | DONE |
@@ -54,14 +54,14 @@ Reference: `submodules/git-lfs/docs/custom-transfers.md`
 
 ### Should-have
 
-4. **Batch pre-flight** — `bridge batch-exists` is available but the adapter checks existence one object at a time. Batching dedup checks before upload would reduce round-trips.
+1. **Batch pre-flight** — `bridge batch-exists` is available but the adapter checks existence one object at a time. Batching dedup checks before upload would reduce round-trips.
 
-5. **Garbage collection** — `bridge batch-delete` is available but no prune workflow is exposed to the user (e.g., `git lfs prune` equivalent for Proton Drive).
+2. **Garbage collection** — `bridge batch-delete` is available but no prune workflow is exposed to the user (e.g., `git lfs prune` equivalent for Proton Drive).
 
-6. **Session refresh reliability** — Known issue noted in proton-drive-cli README: session refresh does not work reliably.
+3. **Session refresh reliability** — Known issue noted in proton-drive-cli README: session refresh does not work reliably.
 
 ### Won't-have (per spec)
 
-7. **Verify action** — The spec states custom transfer agents do not handle verify; git-lfs handles this via its own batch API.
+1. **Verify action** — The spec states custom transfer agents do not handle verify; git-lfs handles this via its own batch API.
 
-8. **Lock/unlock** — The spec states custom transfer agents do not handle locking; this is a batch API concern.
+2. **Lock/unlock** — The spec states custom transfer agents do not handle locking; this is a batch API concern.
