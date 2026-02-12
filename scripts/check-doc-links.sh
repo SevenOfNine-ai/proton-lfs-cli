@@ -47,6 +47,11 @@ while IFS=$'\t' read -r file line target; do
 
   basedir=$(dirname "${file}")
 
+  # Skip targets inside submodules (not checked out in CI)
+  if [[ "${candidate}" == *submodules/* ]]; then
+    continue
+  fi
+
   if [[ -e "${basedir}/${candidate}" || -e "${candidate}" ]]; then
     continue
   fi
