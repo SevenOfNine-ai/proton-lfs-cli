@@ -12,7 +12,7 @@ import (
 // TestHelperProcess is the subprocess entry point used by Go's
 // exec.Command testing pattern. Tests set GO_TEST_HELPER_PROCESS=1
 // and pass "bridge <command>" as arguments.
-func TestHelperProcess(t *testing.T) {
+func TestHelperProcess(_ *testing.T) {
 	if os.Getenv("GO_TEST_HELPER_PROCESS") != "1" {
 		return
 	}

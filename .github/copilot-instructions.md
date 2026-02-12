@@ -53,7 +53,7 @@ From project root:
 **Complete Response**: `{"event":"complete","oid":"...","path":"/tmp/file"}` (for downloads) or `{"event":"complete","oid":"..."}` (for uploads)
 **Error Response**: `{"event":"complete","oid":"...","error":{"code":500,"message":"..."}}`
 
-*See [custom-transfer-integration.md](docs/custom-transfer-integration.md) for detailed protocol specification.*
+*See [custom-transfer-protocol.md](../docs/architecture/custom-transfer-protocol.md) for detailed protocol specification.*
 
 ## Integration Points
 - **Authentication**: Adapter obtains credentials via git-credential helper, environment variables, or direct Proton auth flow. Session management is adapter responsibility.
@@ -64,7 +64,7 @@ From project root:
 
 ## Security
 - SDK is pre-production: validate authentication flows before production deployment
-- Credential helpers: Integrate with Git's native credential systems (see [SECURITY.md](submodules/git-lfs/SECURITY.md))
+- Credential helpers: Integrate with Git's native credential systems (see [SECURITY.md](../submodules/git-lfs/SECURITY.md))
 - Never hardcode auth tokens; always use secure credential providers (git-credential, environment, SSH agent)
 - App version header: `x-pm-appversion: external-drive-protonlfs@v1.0.0` required by Proton SDK
 - Event-based sync: Subscribe to Proton Drive events; do NOT poll file listings
@@ -201,14 +201,14 @@ When adding new code:
 **Critical: All discussions, refinements, and decisions must be reflected in documentation to keep it current.**
 
 ### Documentation Files & Update Frequency
-- **[docs/README.md](docs/README.md)** - Navigation & overview (update when adding/renaming docs)
-- **[docs/architecture.md](docs/architecture.md)** - System design, data flows (update when architecture changes)
-- **[docs/git-lfs-spec.md](docs/git-lfs-spec.md)** - Git LFS essentials (reference only; rarely changes)
-- **[docs/custom-transfer-integration.md](docs/custom-transfer-integration.md)** - JSON-RPC protocol spec (update when protocol changes)
-- **[docs/proton-sdk-integration.md](docs/proton-sdk-integration.md)** - SDK usage & constraints (update when SDK APIs change)
-- **[docs/custom-backend-impl.md](docs/custom-backend-impl.md)** - Best practices & implementation guide (update when patterns change)
-- **[docs/submodule-api-reference.md](docs/submodule-api-reference.md)** - Git LFS API details & code locations (update when submodule APIs change)
-- **[docs/deployment.md](docs/deployment.md)** - Setup & troubleshooting (update for new platforms/CI systems)
+- **[docs/README.md](../docs/README.md)** - Navigation & overview (update when adding/renaming docs)
+- **[docs/architecture/overview.md](../docs/architecture/overview.md)** - System design, data flows (update when architecture changes)
+- **[docs/reference/git-lfs-spec-scope.md](../docs/reference/git-lfs-spec-scope.md)** - Git LFS essentials (reference only; rarely changes)
+- **[docs/architecture/custom-transfer-protocol.md](../docs/architecture/custom-transfer-protocol.md)** - JSON-RPC protocol spec (update when protocol changes)
+- **[docs/architecture/proton-sdk-bridge.md](../docs/architecture/proton-sdk-bridge.md)** - SDK usage & constraints (update when SDK APIs change)
+- **[docs/operations/adapter-configuration.md](../docs/operations/adapter-configuration.md)** - Best practices & implementation guide (update when patterns change)
+- **[docs/architecture/git-lfs-submodule.md](../docs/architecture/git-lfs-submodule.md)** - Git LFS API details & code locations (update when submodule APIs change)
+- **[docs/operations/deployment.md](../docs/operations/deployment.md)** - Setup & troubleshooting (update for new platforms/CI systems)
 
 ### Update Triggers
 When any of these occur, update relevant documentation:
@@ -220,20 +220,20 @@ When any of these occur, update relevant documentation:
 6. **Best practice discoveries** — Performance optimizations, error handling patterns, testing strategies
 
 ### Documentation Sync Checklist
-- [ ] File structure changes? Update [docs/README.md](docs/README.md)
-- [ ] Architecture modified? Update [docs/architecture.md](docs/architecture.md) with diagrams and flow examples
-- [ ] Protocol changed? Update [docs/custom-transfer-integration.md](docs/custom-transfer-integration.md) with message format examples
-- [ ] SDK usage changed? Update [docs/proton-sdk-integration.md](docs/proton-sdk-integration.md) with new API calls
-- [ ] Implementation patterns discovered? Update [docs/custom-backend-impl.md](docs/custom-backend-impl.md) with examples
-- [ ] Git LFS submodule APIs changed? Update [docs/submodule-api-reference.md](docs/submodule-api-reference.md) with new types/functions/line numbers
-- [ ] Build/deploy steps changed? Update [docs/deployment.md](docs/deployment.md) with new commands
+- [ ] File structure changes? Update [docs/README.md](../docs/README.md)
+- [ ] Architecture modified? Update [docs/architecture/overview.md](../docs/architecture/overview.md) with diagrams and flow examples
+- [ ] Protocol changed? Update [docs/architecture/custom-transfer-protocol.md](../docs/architecture/custom-transfer-protocol.md) with message format examples
+- [ ] SDK usage changed? Update [docs/architecture/proton-sdk-bridge.md](../docs/architecture/proton-sdk-bridge.md) with new API calls
+- [ ] Implementation patterns discovered? Update [docs/operations/adapter-configuration.md](../docs/operations/adapter-configuration.md) with examples
+- [ ] Git LFS submodule APIs changed? Update [docs/architecture/git-lfs-submodule.md](../docs/architecture/git-lfs-submodule.md) with new types/functions/line numbers
+- [ ] Build/deploy steps changed? Update [docs/operations/deployment.md](../docs/operations/deployment.md) with new commands
 - [ ] Update this file? Yes — reflects current best practices and project conventions
 
 ### Key References
 When implementing features, consult:
-- **Git LFS API & submodule details**: [docs/submodule-api-reference.md](docs/submodule-api-reference.md) (specific types, functions, line numbers)
-- **Protocol questions**: [submodules/git-lfs/docs/custom-transfers.md](submodules/git-lfs/docs/custom-transfers.md)
-- **Git LFS API**: [submodules/git-lfs/docs/api/](submodules/git-lfs/docs/api/)
+- **Git LFS API & submodule details**: [docs/architecture/git-lfs-submodule.md](../docs/architecture/git-lfs-submodule.md) (specific types, functions, line numbers)
+- **Protocol questions**: [submodules/git-lfs/docs/custom-transfers.md](../submodules/git-lfs/docs/custom-transfers.md)
+- **Git LFS API**: [submodules/git-lfs/docs/api/](../submodules/git-lfs/docs/api/)
 - **Adapter registration**: `submodules/git-lfs/tq/manifest.go` (configureCustomAdapters)
 - **Custom adapter implementation**: `submodules/git-lfs/tq/custom.go` (subprocess communication)
 - **proton-drive-cli**: `submodules/proton-drive-cli/`

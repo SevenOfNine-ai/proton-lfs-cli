@@ -1,3 +1,5 @@
+// Package main implements the git-lfs-proton-adapter, a Git LFS custom
+// transfer agent for Proton Drive.
 package main
 
 import (

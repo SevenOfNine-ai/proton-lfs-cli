@@ -449,7 +449,7 @@ func (a *Adapter) handleMockDownload(msg *InboundMessage, enc *json.Encoder) err
 	if err != nil {
 		return a.sendTransferError(enc, msg.OID, 500, "failed to create temp file: "+err.Error())
 	}
-	defer tmpFile.Close()
+	defer func() { _ = tmpFile.Close() }()
 
 	if msg.Size > 0 {
 		if err := tmpFile.Truncate(msg.Size); err != nil {
@@ -473,7 +473,7 @@ func calculateFileSHA256(path string) (string, int64, error) {
 	if err != nil {
 		return "", 0, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	h := sha256.New()
 	n, err := io.Copy(h, f)
@@ -488,7 +488,7 @@ func copyFile(srcPath, dstPath string) error {
 	if err != nil {
 		return err
 	}
-	defer src.Close()
+	defer func() { _ = src.Close() }()
 
 	tmpPath := fmt.Sprintf("%s.tmp-%d", dstPath, time.Now().UnixNano())
 	dst, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
@@ -522,7 +522,7 @@ func copyIntoOpenFile(srcPath string, dst *os.File) error {
 	if err != nil {
 		return err
 	}
-	defer src.Close()
+	defer func() { _ = src.Close() }()
 
 	if _, err := io.Copy(dst, src); err != nil {
 		return err
@@ -570,7 +570,7 @@ func cleanupStaleTempFiles(maxAge time.Duration) int {
 // printUsage writes the adapter's help text to w. It is assigned to flag.Usage
 // so that --help produces a comprehensive reference instead of a bare flag list.
 func printUsage(w io.Writer) {
-	fmt.Fprint(w, `NAME
+	_, _ = fmt.Fprint(w, `NAME
     git-lfs-proton-adapter - Git LFS custom transfer agent for Proton Drive
 
 SYNOPSIS
@@ -631,7 +631,7 @@ FLAGS
 `)
 	flag.CommandLine.SetOutput(w)
 	flag.CommandLine.PrintDefaults()
-	fmt.Fprint(w, `
+	_, _ = fmt.Fprint(w, `
 ENVIRONMENT VARIABLES
     PROTON_LFS_BACKEND             Backend: local or sdk (default: local)
     PROTON_LFS_LOCAL_STORE_DIR     Local store directory

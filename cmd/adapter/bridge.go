@@ -207,7 +207,7 @@ func sanitizeStderr(raw string) string {
 
 // parseBridgeOutput extracts a JSON envelope from stdout, tolerating non-JSON
 // noise (e.g. debug logging) by scanning from the last line backwards.
-func parseBridgeOutput(stdout, stderr []byte) (*BridgeResponse, error) {
+func parseBridgeOutput(stdout, _ []byte) (*BridgeResponse, error) {
 	trimmed := bytes.TrimSpace(stdout)
 	if len(trimmed) == 0 {
 		return nil, fmt.Errorf("empty stdout from bridge subprocess")
