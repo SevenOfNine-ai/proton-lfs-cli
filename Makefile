@@ -13,7 +13,7 @@ GO_CACHE_DIR := .cache/go-build
 
 .PHONY: help setup setup-env install-deps \
 	build build-adapter build-tray build-lfs build-drive-cli build-sea build-all build-bundle \
-	test test-adapter test-lfs test-integration test-integration-timeout test-integration-stress test-integration-sdk test-e2e-mock test-e2e-real test-all \
+	test test-adapter test-tray test-lfs test-integration test-integration-timeout test-integration-stress test-integration-sdk test-e2e-mock test-e2e-real test-all \
 	pass-env check-sdk-prereqs check-sdk-real-prereqs \
 	fmt lint lint-go \
 	clean status install-hooks
@@ -101,13 +101,17 @@ build-drive-cli: ## Build proton-drive-cli TypeScript bridge
 		$(JS_PM) --workspace $(DRIVE_CLI_DIR) run build; \
 	fi
 
-test: test-adapter ## Run core tests
+test: test-adapter test-tray ## Run core tests
 
-test-all: test-adapter test-lfs test-integration test-e2e-mock ## Run all test suites
+test-all: test-adapter test-tray test-lfs test-integration test-e2e-mock ## Run all test suites
 
 test-adapter: ## Run adapter tests
 	@mkdir -p $(GO_CACHE_DIR)
 	GOCACHE=$(PWD)/$(GO_CACHE_DIR) $(GO) test -race -cover ./cmd/adapter/...
+
+test-tray: ## Run tray app tests (requires CGO)
+	@mkdir -p $(GO_CACHE_DIR)
+	CGO_ENABLED=1 GOCACHE=$(PWD)/$(GO_CACHE_DIR) $(GO) test -race -cover ./cmd/tray/...
 
 test-lfs: ## Run Git LFS submodule tests
 	@if [ ! -d $(GIT_LFS_DIR) ]; then \

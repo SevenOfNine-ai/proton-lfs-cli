@@ -549,3 +549,288 @@ func TestCleanupStaleTempFiles(t *testing.T) {
 		t.Fatal("fresh file should still exist")
 	}
 }
+
+// --- Untested Pure Function Tests ---
+
+func TestZeroBytes(t *testing.T) {
+	t.Run("nil slice", func(_ *testing.T) {
+		zeroBytes(nil) // must not panic
+	})
+	t.Run("empty slice", func(_ *testing.T) {
+		zeroBytes([]byte{}) // must not panic
+	})
+	t.Run("multi-byte", func(t *testing.T) {
+		b := []byte{0xAA, 0xBB, 0xCC, 0xDD}
+		zeroBytes(b)
+		for i, v := range b {
+			if v != 0 {
+				t.Fatalf("byte %d not zeroed: %x", i, v)
+			}
+		}
+	})
+}
+
+func TestCalculateFileSHA256(t *testing.T) {
+	t.Run("known content", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "test.bin")
+		if err := os.WriteFile(path, []byte("hello"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+
+		hash, size, err := calculateFileSHA256(path)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if size != 5 {
+			t.Fatalf("expected size 5, got %d", size)
+		}
+		expected := sha256.Sum256([]byte("hello"))
+		if hash != hex.EncodeToString(expected[:]) {
+			t.Fatalf("hash mismatch: got %s", hash)
+		}
+	})
+	t.Run("empty file", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "empty.bin")
+		if err := os.WriteFile(path, []byte{}, 0o600); err != nil {
+			t.Fatal(err)
+		}
+
+		hash, size, err := calculateFileSHA256(path)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if size != 0 {
+			t.Fatalf("expected size 0, got %d", size)
+		}
+		if hash != "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" {
+			t.Fatalf("expected empty file hash, got %s", hash)
+		}
+	})
+	t.Run("missing file", func(t *testing.T) {
+		_, _, err := calculateFileSHA256("/nonexistent/path")
+		if err == nil {
+			t.Fatal("expected error for missing file")
+		}
+	})
+}
+
+func TestCopyFile(t *testing.T) {
+	t.Run("byte-perfect copy", func(t *testing.T) {
+		dir := t.TempDir()
+		src := filepath.Join(dir, "src.bin")
+		dst := filepath.Join(dir, "dst.bin")
+		content := []byte("copy-test-content")
+		if err := os.WriteFile(src, content, 0o600); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := copyFile(src, dst); err != nil {
+			t.Fatalf("copyFile failed: %v", err)
+		}
+
+		got, err := os.ReadFile(dst)
+		if err != nil {
+			t.Fatalf("failed to read dst: %v", err)
+		}
+		if !bytes.Equal(got, content) {
+			t.Fatal("copy content mismatch")
+		}
+
+		// No temp residue
+		entries, _ := os.ReadDir(dir)
+		for _, e := range entries {
+			if strings.Contains(e.Name(), ".tmp-") {
+				t.Fatalf("temp file residue: %s", e.Name())
+			}
+		}
+	})
+	t.Run("source not found", func(t *testing.T) {
+		err := copyFile("/nonexistent", filepath.Join(t.TempDir(), "dst"))
+		if err == nil {
+			t.Fatal("expected error for missing source")
+		}
+	})
+}
+
+func TestCopyIntoOpenFile(t *testing.T) {
+	t.Run("content matches", func(t *testing.T) {
+		dir := t.TempDir()
+		src := filepath.Join(dir, "src.bin")
+		content := []byte("copy-into-test")
+		if err := os.WriteFile(src, content, 0o600); err != nil {
+			t.Fatal(err)
+		}
+
+		dst, err := os.CreateTemp(dir, "dst-*")
+		if err != nil {
+			t.Fatal(err)
+		}
+		dstPath := dst.Name()
+
+		if err := copyIntoOpenFile(src, dst); err != nil {
+			t.Fatalf("copyIntoOpenFile failed: %v", err)
+		}
+		_ = dst.Close()
+
+		got, err := os.ReadFile(dstPath)
+		if err != nil {
+			t.Fatalf("failed to read dst: %v", err)
+		}
+		if !bytes.Equal(got, content) {
+			t.Fatal("content mismatch")
+		}
+	})
+	t.Run("source not found", func(t *testing.T) {
+		dst, err := os.CreateTemp(t.TempDir(), "dst-*")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = dst.Close() }()
+
+		err = copyIntoOpenFile("/nonexistent", dst)
+		if err == nil {
+			t.Fatal("expected error for missing source")
+		}
+	})
+}
+
+func TestSendProgressSequenceZeroSize(t *testing.T) {
+	adapter := NewAdapter()
+	buf := new(bytes.Buffer)
+	enc := json.NewEncoder(buf)
+
+	if err := adapter.sendProgressSequence(enc, validOID, 0); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	msgs := decodeAllMessages(t, buf.Bytes())
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 progress, got %d", len(msgs))
+	}
+	if msgs[0].Event != EventProgress {
+		t.Fatalf("expected progress event, got %+v", msgs[0])
+	}
+	if msgs[0].BytesSoFar != 0 {
+		t.Fatalf("expected bytesSoFar=0, got %d", msgs[0].BytesSoFar)
+	}
+}
+
+func TestSendProgressSequenceNegativeSize(t *testing.T) {
+	adapter := NewAdapter()
+	buf := new(bytes.Buffer)
+	enc := json.NewEncoder(buf)
+
+	if err := adapter.sendProgressSequence(enc, validOID, -1); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	msgs := decodeAllMessages(t, buf.Bytes())
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 progress, got %d", len(msgs))
+	}
+	if msgs[0].BytesSoFar != 0 {
+		t.Fatalf("expected bytesSoFar=0, got %d", msgs[0].BytesSoFar)
+	}
+}
+
+func TestSendProgressSequenceExactChunkSize(t *testing.T) {
+	adapter := NewAdapter()
+	buf := new(bytes.Buffer)
+	enc := json.NewEncoder(buf)
+
+	if err := adapter.sendProgressSequence(enc, validOID, progressChunkSize); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	msgs := decodeAllMessages(t, buf.Bytes())
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 progress for exact chunk size, got %d", len(msgs))
+	}
+	if msgs[0].BytesSoFar != progressChunkSize {
+		t.Fatalf("expected bytesSoFar=%d, got %d", progressChunkSize, msgs[0].BytesSoFar)
+	}
+}
+
+func TestSendProgressSequenceSmallerThanChunk(t *testing.T) {
+	adapter := NewAdapter()
+	buf := new(bytes.Buffer)
+	enc := json.NewEncoder(buf)
+
+	if err := adapter.sendProgressSequence(enc, validOID, 100); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	msgs := decodeAllMessages(t, buf.Bytes())
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 progress for small file, got %d", len(msgs))
+	}
+	if msgs[0].BytesSoFar != 100 {
+		t.Fatalf("expected bytesSoFar=100, got %d", msgs[0].BytesSoFar)
+	}
+}
+
+func TestValidateTransferRequestEdgeCases(t *testing.T) {
+	cases := []struct {
+		name    string
+		msg     InboundMessage
+		session *Session
+		wantErr string
+	}{
+		{
+			name:    "null_bytes_in_path",
+			msg:     InboundMessage{Event: EventUpload, OID: validOID, Size: 1, Path: "/tmp/file\x00evil"},
+			session: &Session{Initialized: true},
+			wantErr: "null bytes not allowed in path",
+		},
+		{
+			name:    "negative_size",
+			msg:     InboundMessage{Event: EventUpload, OID: validOID, Size: -1, Path: "/tmp/file"},
+			session: &Session{Initialized: true},
+			wantErr: "invalid transfer size",
+		},
+		{
+			name:    "empty_oid",
+			msg:     InboundMessage{Event: EventUpload, OID: "", Size: 1, Path: "/tmp/file"},
+			session: &Session{Initialized: true},
+			wantErr: "invalid oid format",
+		},
+		{
+			name:    "long_oid",
+			msg:     InboundMessage{Event: EventUpload, OID: strings.Repeat("a", 65), Size: 1, Path: "/tmp/file"},
+			session: &Session{Initialized: true},
+			wantErr: "invalid oid format",
+		},
+		{
+			name:    "whitespace_path",
+			msg:     InboundMessage{Event: EventUpload, OID: validOID, Size: 1, Path: "   "},
+			session: &Session{Initialized: true},
+			wantErr: "missing upload path",
+		},
+		{
+			name:    "nil_session",
+			msg:     InboundMessage{Event: EventUpload, OID: validOID, Size: 1, Path: "/tmp/file"},
+			session: nil,
+			wantErr: "session not initialized",
+		},
+		{
+			name:    "uninitialized_session",
+			msg:     InboundMessage{Event: EventUpload, OID: validOID, Size: 1, Path: "/tmp/file"},
+			session: &Session{Initialized: false},
+			wantErr: "session not initialized",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := NewAdapter()
+			a.session = tc.session
+			err := a.validateTransferRequest(&tc.msg, true)
+			if err == nil {
+				t.Fatalf("expected error %q, got nil", tc.wantErr)
+			}
+			if err.Error() != tc.wantErr {
+				t.Fatalf("expected error %q, got %q", tc.wantErr, err.Error())
+			}
+		})
+	}
+}

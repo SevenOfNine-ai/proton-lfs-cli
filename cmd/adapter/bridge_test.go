@@ -450,3 +450,113 @@ func TestMatchesAllowlist(t *testing.T) {
 		}
 	}
 }
+
+// --- Additional Bridge Tests ---
+
+func TestSanitizeStderr(t *testing.T) {
+	cases := []struct {
+		name  string
+		input string
+		check func(string) bool
+	}{
+		{"empty", "", func(s string) bool { return s == "" }},
+		{"normal text", "some error occurred", func(s string) bool { return s == "some error occurred" }},
+		{"Bearer redaction", "auth failed: Bearer eyJhbGciOiJSUz...", func(s string) bool {
+			return strings.HasSuffix(s, "[redacted]") && !strings.Contains(s, "eyJ")
+		}},
+		{"session redaction", "debug: session=abc123 extra", func(s string) bool {
+			return strings.HasSuffix(s, "[redacted]") && !strings.Contains(s, "abc123")
+		}},
+		{"token redaction", "error: token=xyz456", func(s string) bool {
+			return strings.HasSuffix(s, "[redacted]") && !strings.Contains(s, "xyz456")
+		}},
+		{"256 char cap", strings.Repeat("x", 300), func(s string) bool {
+			return len(s) <= 260 && strings.HasSuffix(s, "...")
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := sanitizeStderr(tc.input)
+			if !tc.check(result) {
+				t.Fatalf("sanitizeStderr(%q) = %q, check failed", tc.input, result)
+			}
+		})
+	}
+}
+
+func TestResolveNodeBinaryFromEnv(t *testing.T) {
+	t.Setenv("NODE_BIN", "/custom/node")
+	got := resolveNodeBinary()
+	if got != "/custom/node" {
+		t.Fatalf("expected /custom/node, got %q", got)
+	}
+}
+
+func TestResolveNodeBinaryFallback(t *testing.T) {
+	t.Setenv("NODE_BIN", "")
+	got := resolveNodeBinary()
+	if got == "" {
+		t.Fatal("expected non-empty node binary path")
+	}
+}
+
+func TestParseBridgeOutputWithPayload(t *testing.T) {
+	stdout := []byte(`{"ok":true,"payload":{"exists":true}}`)
+	resp, err := parseBridgeOutput(stdout, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !resp.OK {
+		t.Fatal("expected OK=true")
+	}
+	if len(resp.Payload) == 0 {
+		t.Fatal("expected non-empty payload")
+	}
+}
+
+func TestParseBridgeOutputErrorResponse(t *testing.T) {
+	stdout := []byte(`{"ok":false,"error":"not found","code":404}`)
+	resp, err := parseBridgeOutput(stdout, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.OK {
+		t.Fatal("expected OK=false")
+	}
+	if resp.Error != "not found" {
+		t.Fatalf("expected error 'not found', got %q", resp.Error)
+	}
+	if resp.Code != 404 {
+		t.Fatalf("expected code 404, got %d", resp.Code)
+	}
+}
+
+func TestParseBridgeOutputMultipleLines(t *testing.T) {
+	stdout := []byte("{\"ok\":false,\"error\":\"first\"}\n{\"ok\":true}\n")
+	resp, err := parseBridgeOutput(stdout, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !resp.OK {
+		t.Fatal("expected last JSON line (OK=true) to win")
+	}
+}
+
+func TestBuildCredentialsEmptyStorageBase(t *testing.T) {
+	creds := OperationCredentials{Username: "u", Password: "p"}
+	m := buildCredentials(creds, "", "v1")
+	if _, ok := m["storageBase"]; ok {
+		t.Fatal("storageBase should be absent when empty")
+	}
+}
+
+func TestBuildCredentialsEmptyUsername(t *testing.T) {
+	creds := OperationCredentials{Username: "", Password: "p"}
+	m := buildCredentials(creds, "LFS", "v1")
+	if _, ok := m["username"]; ok {
+		t.Fatal("username should be absent when empty")
+	}
+	if m["password"] != "p" {
+		t.Fatal("password should still be present")
+	}
+}

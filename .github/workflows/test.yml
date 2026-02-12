@@ -45,6 +45,37 @@ jobs:
           path: coverage.out
           retention-days: 7
 
+  go-test-tray:
+    name: Tray tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install Linux deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc libgtk-3-dev libayatana-appindicator3-dev
+
+      - name: Run tray tests
+        env:
+          CGO_ENABLED: "1"
+        run: |
+          go test -race -cover ./cmd/tray/...
+
   integration-local:
     name: Integration local backend (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

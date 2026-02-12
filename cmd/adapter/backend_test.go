@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -261,5 +262,152 @@ func TestDriveCLIBackendZeroCredentials(t *testing.T) {
 		if b != 0 {
 			t.Fatal("password byte not zeroed")
 		}
+	}
+}
+
+// --- BackendError Tests ---
+
+func TestBackendErrorError(t *testing.T) {
+	t.Run("nil receiver", func(t *testing.T) {
+		var e *BackendError
+		if e.Error() != "" {
+			t.Fatalf("expected empty string for nil, got %q", e.Error())
+		}
+	})
+	t.Run("without inner error", func(t *testing.T) {
+		e := &BackendError{Code: 404, Message: "not found"}
+		if e.Error() != "not found" {
+			t.Fatalf("expected 'not found', got %q", e.Error())
+		}
+	})
+	t.Run("with inner error", func(t *testing.T) {
+		inner := errors.New("disk full")
+		e := &BackendError{Code: 500, Message: "write failed", Err: inner}
+		if !strings.Contains(e.Error(), "write failed") || !strings.Contains(e.Error(), "disk full") {
+			t.Fatalf("expected composite message, got %q", e.Error())
+		}
+	})
+}
+
+func TestBackendErrorUnwrap(t *testing.T) {
+	t.Run("nil receiver", func(t *testing.T) {
+		var e *BackendError
+		if e.Unwrap() != nil {
+			t.Fatal("expected nil for nil receiver")
+		}
+	})
+	t.Run("without inner", func(t *testing.T) {
+		e := &BackendError{Code: 404, Message: "not found"}
+		if e.Unwrap() != nil {
+			t.Fatal("expected nil when no inner error")
+		}
+	})
+	t.Run("with inner", func(t *testing.T) {
+		inner := errors.New("root cause")
+		e := &BackendError{Code: 500, Message: "wrapped", Err: inner}
+		if e.Unwrap() != inner {
+			t.Fatal("expected inner error from Unwrap")
+		}
+	})
+}
+
+func TestBackendErrorDetailsNilError(t *testing.T) {
+	code, msg := backendErrorDetails(nil)
+	if code != 500 {
+		t.Fatalf("expected 500, got %d", code)
+	}
+	if msg != "transfer backend error" {
+		t.Fatalf("expected fallback message, got %q", msg)
+	}
+}
+
+func TestBackendErrorDetailsNonBackendError(t *testing.T) {
+	code, msg := backendErrorDetails(errors.New("plain error"))
+	if code != 500 {
+		t.Fatalf("expected 500, got %d", code)
+	}
+	if msg != "transfer backend error" {
+		t.Fatalf("expected fallback message, got %q", msg)
+	}
+}
+
+func TestBackendErrorDetailsWithBackendError(t *testing.T) {
+	err := &BackendError{Code: 404, Message: "object missing"}
+	code, msg := backendErrorDetails(err)
+	if code != 404 {
+		t.Fatalf("expected 404, got %d", code)
+	}
+	if msg != "object missing" {
+		t.Fatalf("expected 'object missing', got %q", msg)
+	}
+}
+
+func TestLocalStoreBackendValidateSession(t *testing.T) {
+	b := NewLocalStoreBackend(t.TempDir())
+	t.Run("nil session", func(t *testing.T) {
+		err := b.Initialize(nil)
+		if err == nil {
+			t.Fatal("expected error for nil session")
+		}
+		code, _ := backendErrorDetails(err)
+		if code != 500 {
+			t.Fatalf("expected 500, got %d", code)
+		}
+	})
+	t.Run("uninitialized session", func(t *testing.T) {
+		err := b.Initialize(&Session{Initialized: false})
+		if err == nil {
+			t.Fatal("expected error for uninitialized session")
+		}
+	})
+	t.Run("valid session", func(t *testing.T) {
+		err := b.Initialize(&Session{Initialized: true})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+}
+
+func TestLocalStoreBackendObjectPath(t *testing.T) {
+	b := NewLocalStoreBackend("/store")
+	t.Run("2-level prefix", func(t *testing.T) {
+		path := b.objectPath(validOID)
+		expected := filepath.Join("/store", validOID[:2], validOID[2:4], validOID)
+		if path != expected {
+			t.Fatalf("expected %q, got %q", expected, path)
+		}
+	})
+	t.Run("short OID fallback", func(t *testing.T) {
+		path := b.objectPath("abc")
+		expected := filepath.Join("/store", "abc")
+		if path != expected {
+			t.Fatalf("expected %q, got %q", expected, path)
+		}
+	})
+}
+
+func TestLocalStoreBackendInitializeEmptyStoreDir(t *testing.T) {
+	b := NewLocalStoreBackend("")
+	err := b.Initialize(&Session{Initialized: true})
+	if err == nil {
+		t.Fatal("expected error for empty store dir")
+	}
+	code, _ := backendErrorDetails(err)
+	if code != 501 {
+		t.Fatalf("expected 501, got %d", code)
+	}
+}
+
+func TestLocalStoreBackendDownloadNotFound(t *testing.T) {
+	b := NewLocalStoreBackend(t.TempDir())
+	session := &Session{Initialized: true}
+
+	_, _, err := b.Download(session, validOID)
+	if err == nil {
+		t.Fatal("expected error for missing object")
+	}
+	code, _ := backendErrorDetails(err)
+	if code != 404 {
+		t.Fatalf("expected 404, got %d", code)
 	}
 }
