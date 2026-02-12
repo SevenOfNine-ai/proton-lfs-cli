@@ -45,7 +45,8 @@ make build-drive-cli    # Build proton-drive-cli TypeScript bridge only
 make test               # Run Go adapter unit tests
 make test-integration   # Run Git LFS integration tests
 make test-integration-sdk  # SDK backend integration (uses pass-cli)
-make test-integration-proton-drive-cli  # proton-drive-cli bridge tests
+make test-integration-failure-modes     # Failure mode tests (wrong OID, crash, hang)
+make test-integration-config-matrix    # Direction config matrix tests
 make test-integration-credentials       # Credential security tests
 make test-e2e-mock      # Mocked E2E pipeline (no real credentials)
 make test-e2e-real      # Real Proton Drive E2E (requires pass-cli login + build-drive-cli)
@@ -137,7 +138,7 @@ The `proton-drive-cli` submodule (`submodules/proton-drive-cli/`) provides:
 
 **Bridge protocol**: `proton-drive-cli bridge <command>` reads JSON from stdin, writes JSON to stdout using `{ ok, payload, error, code }` envelope format.
 
-**Bridge helpers** (`src/cli/bridge-helpers.ts`): OID-to-path mapping using 2-character prefix directories (e.g., OID `abc123...` → `/LFS/ab/c123...`).
+**Bridge helpers** (`src/cli/bridge-helpers.ts`): OID-to-path mapping using 2-level prefix directories (e.g., OID `abc12345...` → `/LFS/ab/c1/abc12345...`).
 
 ## Important Configuration Files
 

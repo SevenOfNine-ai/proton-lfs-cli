@@ -14,8 +14,8 @@ Integration tests validate Git LFS client behavior against the adapter runtime a
 | `make test-integration-timeout` | Stalled-adapter timeout semantics |
 | `make test-integration-stress` | High-volume concurrent stress/soak |
 | `make test-integration-sdk` | SDK backend integration path (local service by default) |
-| `make test-integration-sdk-real` | SDK backend integration path against real Proton API |
-| `make test-integration-proton-drive-cli` | proton-drive-cli bridge integration tests |
+| `make test-integration-failure-modes` | Failure mode tests (wrong OID, crash, hang) |
+| `make test-integration-config-matrix` | Direction config matrix tests |
 | `make test-integration-credentials` | Credential flow security tests |
 | `make test-e2e-mock` | Mocked E2E pipeline (no real credentials) |
 | `make test-e2e-real` | Real Proton Drive E2E (requires pass-cli login + build-drive-cli) |
