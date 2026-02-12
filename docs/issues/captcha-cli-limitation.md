@@ -35,6 +35,7 @@ We reverse-proxy the CAPTCHA page through a local HTTP server:
 5. CLI receives the token and retries authentication
 
 **Limitations of this workaround:**
+
 - Browser address bar shows `localhost` (looks untrustworthy)
 - hCaptcha may reject solutions from `localhost` origin (site key domain mismatch)
 - Fragile — depends on Proton's CAPTCHA page HTML structure not changing
@@ -52,6 +53,7 @@ https://verify.proton.me/?methods=captcha&token=CHALLENGE&redirect_uri=http://lo
 ```
 
 After CAPTCHA completion, redirect the browser to:
+
 ```
 http://localhost:PORT/callback?verification_token=FULL_TOKEN
 ```
@@ -70,7 +72,8 @@ GET /core/v4/captcha/status?token=CHALLENGE_TOKEN
 ```
 
 The CLI would:
-1. Show: *"Open https://verify.proton.me/... and complete the CAPTCHA"*
+
+1. Show: *"Open `https://verify.proton.me/...` and complete the CAPTCHA"*
 2. Poll the status endpoint every 3 seconds
 3. Receive the token when the user completes the CAPTCHA
 
