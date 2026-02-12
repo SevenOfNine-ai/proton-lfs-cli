@@ -76,7 +76,13 @@ func applyStatus() {
 	}
 
 	if !report.Timestamp.IsZero() {
-		mLastTransfer.SetTitle(fmt.Sprintf("Last Transfer: %s", relativeTime(report.Timestamp)))
+		// Only show "Last Transfer" for actual data operations, not init/terminate
+		switch report.LastOp {
+		case "upload", "download":
+			mLastTransfer.SetTitle(fmt.Sprintf("Last Transfer: %s (%s)", relativeTime(report.Timestamp), report.LastOp))
+		default:
+			mLastTransfer.SetTitle(fmt.Sprintf("Last Activity: %s", relativeTime(report.Timestamp)))
+		}
 	}
 }
 

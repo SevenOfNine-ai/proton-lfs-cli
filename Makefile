@@ -7,6 +7,8 @@ COREPACK_HOME_DIR := $(PWD)/.cache/corepack
 
 ADAPTER_BIN := bin/git-lfs-proton-adapter
 TRAY_BIN := bin/proton-git-lfs-tray
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+LDFLAGS_VERSION := -X main.Version=$(VERSION)
 GIT_LFS_DIR := submodules/git-lfs
 DRIVE_CLI_DIR := submodules/proton-drive-cli
 GO_CACHE_DIR := .cache/go-build
@@ -71,7 +73,7 @@ build-adapter: ## Build the custom transfer adapter
 
 build-tray: ## Build the system tray application (requires CGO)
 	@mkdir -p bin
-	CGO_ENABLED=1 $(GO) build -trimpath -o $(TRAY_BIN) ./cmd/tray
+	CGO_ENABLED=1 $(GO) build -trimpath -ldflags '$(LDFLAGS_VERSION)' -o $(TRAY_BIN) ./cmd/tray
 
 build-sea: build-drive-cli ## Build proton-drive-cli as a standalone Node.js SEA binary
 	@bash scripts/build-sea.sh
