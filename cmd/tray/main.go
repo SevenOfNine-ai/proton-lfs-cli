@@ -1,3 +1,4 @@
+// Proton Git LFS system tray application.
 package main
 
 import (

@@ -25,7 +25,7 @@ func DefaultPreferences() Preferences {
 // LoadPrefs reads preferences from the config file.
 // Returns defaults if the file is missing or unreadable.
 func LoadPrefs() Preferences {
-	path := ConfigFilePath()
+	path := PrefsFilePath()
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return DefaultPreferences()
@@ -47,7 +47,7 @@ func SavePrefs(prefs Preferences) error {
 		return fmt.Errorf("marshal prefs: %w", err)
 	}
 
-	path := ConfigFilePath()
+	path := PrefsFilePath()
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("create config dir: %w", err)

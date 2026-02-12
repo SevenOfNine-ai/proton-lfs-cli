@@ -1,0 +1,17 @@
+changelog:
+  categories:
+    - title: New Features
+      labels:
+        - enhancement
+      exclude:
+        labels:
+          - documentation
+    - title: Bug Fixes
+      labels:
+        - bug
+    - title: CI/CD
+      labels:
+        - ci
+    - title: Other Changes
+      labels:
+        - "*"

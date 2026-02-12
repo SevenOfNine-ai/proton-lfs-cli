@@ -92,10 +92,10 @@ func TestStatusFilePath_EnvOverride(t *testing.T) {
 	}
 }
 
-func TestConfigFilePath(t *testing.T) {
-	p := ConfigFilePath()
+func TestPrefsFilePath(t *testing.T) {
+	p := PrefsFilePath()
 	if p == "" {
-		t.Fatal("ConfigFilePath returned empty")
+		t.Fatal("PrefsFilePath returned empty")
 	}
 }
 
@@ -175,7 +175,7 @@ func TestStatusErrorState(t *testing.T) {
 
 func TestPrefsRoundTrip(t *testing.T) {
 	tmpDir := t.TempDir()
-	// Override HOME so ConfigFilePath points to tmpDir
+	// Override HOME so PrefsFilePath points to tmpDir
 	t.Setenv("HOME", tmpDir)
 
 	prefs := Preferences{

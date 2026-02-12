@@ -6,26 +6,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Proton Git LFS Backend - A pre-alpha Git LFS custom transfer adapter for Proton Drive that provides encrypted storage for Git LFS objects.
 
-**Current State:** The Go adapter communicates directly with `proton-drive-cli` via subprocess stdin/stdout. No HTTP bridge layer. The project uses a Go+TypeScript+Node.js stack with `pass-cli` for credential management.
+**Current State:** The Go adapter communicates directly with `proton-drive-cli` via subprocess stdin/stdout. A system tray app provides GUI status and configuration. The release pipeline bundles all three components (adapter + tray + proton-drive-cli SEA) into a single distributable per platform.
 
 ## Architecture
 
 ```
-Go Adapter → proton-drive-cli (TypeScript subprocess, stdin/stdout JSON) → Proton API
+System Tray App (cmd/tray/)
+     ↕  reads ~/.proton-git-lfs/status.json
+     ↕  writes ~/.proton-git-lfs/config.json
+Go Adapter (cmd/adapter/) → proton-drive-cli (subprocess, stdin/stdout JSON) → Proton API
      ↓
- pass-cli (credentials)
+ pass-cli or git-credential (credentials)
 ```
 
-The project has two main components:
+Shared configuration lives in `internal/config/` and is used by both the adapter and tray app.
+
+The project has four main components:
 
 1. **Go Adapter** (`cmd/adapter/`): Custom transfer adapter that implements Git LFS protocol
-   - `main.go`: Core adapter logic, message handling, protocol implementation
+   - `main.go`: Core adapter logic, message handling, protocol implementation, status reporting
    - `backend.go`: Storage backend abstraction (local and DriveCLI backends)
    - `bridge.go`: Direct subprocess client for proton-drive-cli (stdin/stdout JSON protocol)
    - `passcli.go`: Credential resolution via pass-cli integration
-   - `config_constants.go`: Environment variable configuration
+   - `config_constants.go`: Thin wrapper delegating to `internal/config`
 
-2. **Submodules** (`submodules/`):
+2. **System Tray App** (`cmd/tray/`): Cross-platform menu bar application
+   - `main.go`: Entry point using `fyne.io/systray`
+   - `menu.go`: Menu structure, credential provider toggle, Git LFS registration
+   - `status.go`: Polls `~/.proton-git-lfs/status.json` every 5s, updates icon/text
+   - `setup.go`: Binary discovery, autostart (macOS LaunchAgent / Linux .desktop)
+   - `icons/`: Embedded 64x64 PNG icons (idle/ok/error/syncing)
+
+3. **Shared Config** (`internal/config/`): Constants and helpers shared by adapter + tray
+   - `config.go`: Env var names, defaults, `EnvTrim`/`EnvOrDefault`/`EnvBoolOrDefault`
+   - `status.go`: `StatusReport` struct, atomic `WriteStatus`/`ReadStatus`
+   - `prefs.go`: `Preferences` struct, `LoadPrefs`/`SavePrefs`
+
+4. **Submodules** (`submodules/`):
    - `git-lfs`: Upstream Git LFS reference
    - `pass-cli`: Proton Pass CLI for secure credential storage (v1.4.3)
    - `proton-drive-cli`: TypeScript-based Proton Drive client with full auth flow, E2E encryption
@@ -36,7 +53,10 @@ The project has two main components:
 ```bash
 make setup              # Install deps (Go + JS), create .env
 make build              # Build Go adapter to bin/git-lfs-proton-adapter
-make build-all          # Build adapter + Git LFS submodule + proton-drive-cli
+make build-tray         # Build system tray app (requires CGO_ENABLED=1)
+make build-sea          # Build proton-drive-cli as standalone SEA binary (Node.js 25.5+)
+make build-bundle       # Build all 3 components into dist/ for packaging
+make build-all          # Build adapter + tray + Git LFS submodule + proton-drive-cli
 make build-drive-cli    # Build proton-drive-cli TypeScript bridge only
 ```
 
@@ -145,7 +165,7 @@ The `proton-drive-cli` submodule (`submodules/proton-drive-cli/`) provides:
 - `.env` / `.env.example`: Environment configuration (credentials, backend modes)
 - `Makefile`: Build orchestration, test runners, prerequisite checks
 - `package.json`: Root Yarn 4 workspace with `proton-drive-cli`
-- `go.mod`: Go 1.25 module (minimal, no external deps)
+- `go.mod`: Go 1.25 module (deps: `fyne.io/systray`)
 - `docs/architecture/sdk-capability-matrix.md`: SDK access requirements by mode
 
 ## JavaScript Package Management
@@ -170,12 +190,15 @@ Workspace structure:
 ## Testing Strategy
 
 1. **Unit tests**: Go (`*_test.go`) with `TestHelperProcess` pattern for subprocess mocking
+   - `cmd/adapter/`: Protocol, backend, bridge, credential tests
+   - `internal/config/`: Status round-trip, prefs round-trip, env helper tests
 2. **Integration tests**: `tests/integration/` with `-tags integration`
    - Black-box Git LFS protocol validation
    - Timeout and concurrency stress tests
    - SDK backend roundtrip tests (direct subprocess)
    - Credential security tests
 3. **Mock mode**: `ADAPTER_ALLOW_MOCK_TRANSFERS=true` for protocol-only testing
+4. **Pre-commit hooks**: `gofmt`, `go vet`, `golangci-lint`, `go test` (adapter + config)
 
 ## Security Notes
 
@@ -190,6 +213,26 @@ Workspace structure:
 - Subprocess pool: max 10 concurrent operations with 5-minute timeout (non-blocking semaphore)
 - Session tokens stored in `~/.proton-drive-cli/session.json` (should be 0600)
 - See `docs/security/threat-model.md` for full threat model
+
+## Status File Protocol
+
+The adapter writes status to `~/.proton-git-lfs/status.json` (override with `PROTON_LFS_STATUS_FILE`). The tray app polls this file every 5 seconds.
+
+```json
+{ "state": "ok", "lastOid": "abc123...", "lastOp": "upload", "timestamp": "..." }
+```
+
+States: `idle` (grey icon), `ok` (green), `error` (red), `transferring` (blue).
+
+## Release Pipeline
+
+`release-bundle.yml` triggers on `v*` tags and produces self-contained bundles:
+
+1. **build-all** (matrix: macos-14/13, ubuntu, windows): Builds adapter (CGO=0), tray (CGO=1), proton-drive-cli SEA (Node.js 25.5+ `--build-sea`)
+2. **package**: Assembles platform bundles (macOS `.app`, Linux `.tar.gz`, Windows `.zip`) via `scripts/package-bundle.sh`
+3. **release**: Creates GitHub Release with SHA256 checksums
+
+The existing `build.yml` continues to build standalone adapter binaries.
 
 ## Known Issues
 

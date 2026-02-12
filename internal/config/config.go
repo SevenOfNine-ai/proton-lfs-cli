@@ -1,3 +1,6 @@
+// Package config provides shared constants, environment helpers, status
+// reporting, and user preference persistence for the Proton Git LFS adapter
+// and tray application.
 package config
 
 import (
@@ -71,8 +74,8 @@ func StatusFilePath() string {
 	return filepath.Join(AppDirPath(), StatusFileName)
 }
 
-// ConfigFilePath returns the path to the user preferences file.
-func ConfigFilePath() string {
+// PrefsFilePath returns the path to the user preferences file.
+func PrefsFilePath() string {
 	return filepath.Join(AppDirPath(), ConfigFileName)
 }
 

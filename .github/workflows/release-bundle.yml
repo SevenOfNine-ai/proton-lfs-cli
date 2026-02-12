@@ -26,10 +26,7 @@ jobs:
             goos: darwin
             goarch: arm64
             target: darwin-arm64
-          - os: macos-13
-            goos: darwin
-            goarch: amd64
-            target: darwin-amd64
+          # darwin-amd64 omitted: free Intel macOS runners retired by GitHub
           - os: ubuntu-latest
             goos: linux
             goarch: amd64
@@ -42,8 +39,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
+
+      - name: Init submodules
+        shell: bash
+        run: |
+          git submodule update --init submodules/git-lfs
+          git submodule update --init submodules/pass-cli
+          git submodule update --init submodules/proton-drive-cli
+          cd submodules/proton-drive-cli && git submodule update --init submodules/sdk
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -53,10 +56,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "25"
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Enable Corepack + Yarn 4
+        shell: bash
+        run: |
+          # Remove pre-installed yarn 1.x on Windows so corepack shim takes priority
+          npm uninstall -g yarn 2>/dev/null || true
+          corepack enable
+          corepack prepare yarn@4.1.1 --activate
+          yarn --version
 
       # ── Go adapter (CGO_ENABLED=0) ──────────────────────────
       - name: Build adapter
@@ -100,32 +109,53 @@ jobs:
       # ── proton-drive-cli SEA ─────────────────────────────────
       - name: Install JS dependencies
         shell: bash
-        run: yarn install
+        run: yarn install --immutable
+
+      - name: Build SDK types
+        shell: bash
+        run: |
+          # SDK dist/ is not git-tracked; emit declarations for proton-drive-cli
+          # --noCheck: skip type checking (SDK has TS 5.9 compat issues)
+          node_modules/.bin/tsc -p submodules/proton-drive-cli/submodules/sdk/js/sdk --noCheck
 
       - name: Build proton-drive-cli TypeScript
         shell: bash
-        run: yarn workspace @sevenofnine-ai/proton-drive-cli build
+        working-directory: submodules/proton-drive-cli
+        run: |
+          # tsc may be in workspace or hoisted to root node_modules
+          TSC="./node_modules/.bin/tsc"
+          [ -x "$TSC" ] || TSC="../../node_modules/.bin/tsc"
+          "$TSC"
 
       - name: Build proton-drive-cli SEA
         shell: bash
         run: |
           cd submodules/proton-drive-cli
-          npx esbuild dist/index.js --bundle --platform=node --target=node22 --outfile=sea-bundle.cjs
-          node --experimental-sea-config sea-config.json
+          node esbuild.config.mjs
 
           EXT=""
           if [ "${{ matrix.goos }}" = "windows" ]; then EXT=".exe"; fi
           OUTPUT_NAME="proton-drive-cli${EXT}"
-
-          cp "$(command -v node)" "$OUTPUT_NAME"
-
-          # macOS: remove signature before injection
-          if [[ "$OSTYPE" == "darwin"* ]]; then
-            codesign --remove-signature "$OUTPUT_NAME" 2>/dev/null || true
+          NODE_BIN="$(command -v node)"
+          # Windows: convert MSYS2 path (/c/...) to native path (C:/...)
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            NODE_BIN="$(cygpath -m "$NODE_BIN")"
+            # Ensure .exe extension (cygpath may or may not include it)
+            [[ "$NODE_BIN" != *.exe ]] && NODE_BIN="${NODE_BIN}.exe"
           fi
 
-          npx postject "$OUTPUT_NAME" NODE_SEA_BLOB sea-prep.blob \
-            --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2
+          # Generate build-time config with resolved paths
+          cat > sea-config-ci.json <<SEACFG
+          {
+            "main": "sea-bundle.cjs",
+            "output": "${OUTPUT_NAME}",
+            "executable": "${NODE_BIN}",
+            "disableExperimentalSEAWarning": true,
+            "useCodeCache": true
+          }
+          SEACFG
+
+          node --build-sea sea-config-ci.json
 
           # macOS: ad-hoc re-sign
           if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -133,7 +163,7 @@ jobs:
           fi
 
           mv "$OUTPUT_NAME" "../../build/$OUTPUT_NAME"
-          rm -f sea-bundle.cjs sea-prep.blob
+          rm -f sea-bundle.cjs sea-config-ci.json
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -152,8 +182,6 @@ jobs:
       matrix:
         include:
           - target: darwin-arm64
-            goos: darwin
-          - target: darwin-amd64
             goos: darwin
           - target: linux-amd64
             goos: linux
