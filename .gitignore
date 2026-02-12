@@ -33,6 +33,7 @@ go.work.sum
 # .vscode/
 # Build artifacts
 bin/
+build/
 dist/
 .cache/
 /adapter
