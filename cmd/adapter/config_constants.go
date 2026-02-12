@@ -1,88 +1,70 @@
 package main
 
 import (
-	"os"
-	"strconv"
-	"strings"
+	"proton-git-lfs/internal/config"
 )
 
+// Backend modes — re-exported from internal/config for package main usage.
 const (
-	BackendLocal = "local"
-	BackendSDK   = "sdk"
+	BackendLocal = config.BackendLocal
+	BackendSDK   = config.BackendSDK
 )
 
+// Credential providers
 const (
-	CredentialProviderPassCLI       = "pass-cli"
-	CredentialProviderGitCredential = "git-credential"
+	CredentialProviderPassCLI       = config.CredentialProviderPassCLI
+	CredentialProviderGitCredential = config.CredentialProviderGitCredential
 )
 
+// Default values
 const (
-	DefaultDriveCLIBin        = "submodules/proton-drive-cli/dist/index.js"
-	DefaultStorageBase        = "LFS"
-	DefaultPassCLIBinary      = "pass-cli"
-	DefaultPassRefRoot        = "pass://Personal/Proton Git LFS"
-	DefaultCredentialProvider = CredentialProviderPassCLI
+	DefaultDriveCLIBin        = config.DefaultDriveCLIBin
+	DefaultStorageBase        = config.DefaultStorageBase
+	DefaultPassCLIBinary      = config.DefaultPassCLIBinary
+	DefaultPassRefRoot        = config.DefaultPassRefRoot
+	DefaultCredentialProvider = config.DefaultCredentialProvider
 )
 
+// Environment variable names
 const (
-	EnvDriveCLIBin        = "PROTON_DRIVE_CLI_BIN"
-	EnvNodeBin            = "NODE_BIN"
-	EnvStorageBase        = "LFS_STORAGE_BASE"
-	EnvAppVersion         = "PROTON_APP_VERSION"
-	EnvBackend            = "PROTON_LFS_BACKEND"
-	EnvAllowMockTransfers = "ADAPTER_ALLOW_MOCK_TRANSFERS"
-	EnvLocalStoreDir      = "PROTON_LFS_LOCAL_STORE_DIR"
-	EnvPassCLIBin         = "PROTON_PASS_CLI_BIN"
-	EnvPassRefRoot        = "PROTON_PASS_REF_ROOT"
-	EnvPassUsernameRef    = "PROTON_PASS_USERNAME_REF"
-	EnvPassPasswordRef    = "PROTON_PASS_PASSWORD_REF"
-	EnvCredentialProvider = "PROTON_CREDENTIAL_PROVIDER"
+	EnvDriveCLIBin        = config.EnvDriveCLIBin
+	EnvNodeBin            = config.EnvNodeBin
+	EnvStorageBase        = config.EnvStorageBase
+	EnvAppVersion         = config.EnvAppVersion
+	EnvBackend            = config.EnvBackend
+	EnvAllowMockTransfers = config.EnvAllowMockTransfers
+	EnvLocalStoreDir      = config.EnvLocalStoreDir
+	EnvPassCLIBin         = config.EnvPassCLIBin
+	EnvPassRefRoot        = config.EnvPassRefRoot
+	EnvPassUsernameRef    = config.EnvPassUsernameRef
+	EnvPassPasswordRef    = config.EnvPassPasswordRef
+	EnvCredentialProvider = config.EnvCredentialProvider
 )
 
 func envTrim(key string) string {
-	return strings.TrimSpace(os.Getenv(key))
+	return config.EnvTrim(key)
 }
 
 func envOrDefault(key, fallback string) string {
-	if value := envTrim(key); value != "" {
-		return value
-	}
-	return fallback
+	return config.EnvOrDefault(key, fallback)
 }
 
 func envBoolOrDefault(key string, fallback bool) bool {
-	value := envTrim(key)
-	if value == "" {
-		return fallback
-	}
-	parsed, err := strconv.ParseBool(value)
-	if err != nil {
-		return fallback
-	}
-	return parsed
+	return config.EnvBoolOrDefault(key, fallback)
 }
 
 func passRefRootFromEnv() string {
-	root := envOrDefault(EnvPassRefRoot, DefaultPassRefRoot)
-	return normalizePassRefRoot(root)
+	return config.PassRefRootFromEnv()
 }
 
 func normalizePassRefRoot(root string) string {
-	root = strings.TrimSpace(root)
-	root = strings.TrimRight(root, "/")
-	return root
+	return config.NormalizePassRefRoot(root)
 }
 
 func defaultPassUsernameRef(root string) string {
-	if root == "" {
-		return ""
-	}
-	return root + "/username"
+	return config.DefaultPassUsernameRef(root)
 }
 
 func defaultPassPasswordRef(root string) string {
-	if root == "" {
-		return ""
-	}
-	return root + "/password"
+	return config.DefaultPassPasswordRef(root)
 }

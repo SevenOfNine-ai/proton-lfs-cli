@@ -14,6 +14,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"proton-git-lfs/internal/config"
 )
 
 const (
@@ -199,6 +201,7 @@ func (a *Adapter) handleInit(msg *InboundMessage, enc *json.Encoder) error {
 		return a.sendProtocolError(enc, code, message)
 	}
 
+	_ = config.WriteStatus(config.StatusReport{State: config.StateIdle, LastOp: "init"})
 	// Send empty response to indicate success
 	return enc.Encode(OutboundMessage{})
 }
@@ -244,6 +247,7 @@ func (a *Adapter) handleUpload(msg *InboundMessage, enc *json.Encoder) error {
 		return err
 	}
 
+	_ = config.WriteStatus(config.StatusReport{State: config.StateOK, LastOID: normalizedOID, LastOp: "upload"})
 	return enc.Encode(OutboundMessage{
 		Event: EventComplete,
 		OID:   normalizedOID,
@@ -295,6 +299,7 @@ func (a *Adapter) handleDownload(msg *InboundMessage, enc *json.Encoder) error {
 		return err
 	}
 
+	_ = config.WriteStatus(config.StatusReport{State: config.StateOK, LastOID: normalizedOID, LastOp: "download"})
 	return enc.Encode(OutboundMessage{
 		Event: EventComplete,
 		OID:   normalizedOID,
@@ -307,6 +312,7 @@ func (a *Adapter) handleTerminate(_ *InboundMessage, _ *json.Encoder) error {
 	a.logger.Println("Terminating adapter")
 	a.session = nil
 	a.zeroCredentials()
+	_ = config.WriteStatus(config.StatusReport{State: config.StateIdle, LastOp: "terminate"})
 	return nil
 }
 
@@ -363,6 +369,7 @@ func validateFilePath(p string) error {
 
 func (a *Adapter) sendTransferError(enc *json.Encoder, oid string, code int, message string) error {
 	a.logger.Printf("Error [%d]: %s", code, message)
+	_ = config.WriteStatus(config.StatusReport{State: config.StateError, Error: message})
 	return enc.Encode(OutboundMessage{
 		Event: EventComplete,
 		OID:   oid,

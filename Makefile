@@ -6,12 +6,13 @@ JS_PM ?= yarn
 COREPACK_HOME_DIR := $(PWD)/.cache/corepack
 
 ADAPTER_BIN := bin/git-lfs-proton-adapter
+TRAY_BIN := bin/proton-git-lfs-tray
 GIT_LFS_DIR := submodules/git-lfs
 DRIVE_CLI_DIR := submodules/proton-drive-cli
 GO_CACHE_DIR := .cache/go-build
 
 .PHONY: help setup setup-env install-deps \
-	build build-adapter build-lfs build-drive-cli build-all \
+	build build-adapter build-tray build-lfs build-drive-cli build-sea build-all build-bundle \
 	test test-adapter test-lfs test-integration test-integration-timeout test-integration-stress test-integration-sdk test-e2e-mock test-e2e-real test-all \
 	pass-env check-sdk-prereqs check-sdk-real-prereqs \
 	fmt lint lint-go \
@@ -62,11 +63,25 @@ install-deps: ## Install Go dependencies and JS dependencies (default: yarn via 
 
 build: build-adapter ## Build first-party binaries
 
-build-all: build-adapter build-lfs build-drive-cli ## Build adapter, Git LFS submodule, and proton-drive-cli
+build-all: build-adapter build-tray build-lfs build-drive-cli ## Build adapter, tray app, Git LFS submodule, and proton-drive-cli
 
 build-adapter: ## Build the custom transfer adapter
 	@mkdir -p bin
 	$(GO) build -trimpath -o $(ADAPTER_BIN) ./cmd/adapter
+
+build-tray: ## Build the system tray application (requires CGO)
+	@mkdir -p bin
+	CGO_ENABLED=1 $(GO) build -trimpath -o $(TRAY_BIN) ./cmd/tray
+
+build-sea: build-drive-cli ## Build proton-drive-cli as a standalone Node.js SEA binary
+	@bash scripts/build-sea.sh
+
+build-bundle: build-adapter build-tray build-sea ## Build all components into dist/ for packaging
+	@mkdir -p dist
+	@cp bin/git-lfs-proton-adapter dist/ 2>/dev/null || true
+	@cp bin/proton-git-lfs-tray dist/ 2>/dev/null || true
+	@cp bin/proton-drive-cli dist/ 2>/dev/null || true
+	@echo "Bundle assembled in dist/"
 
 build-lfs: ## Build Git LFS submodule
 	@if [ ! -d $(GIT_LFS_DIR) ]; then \
@@ -171,14 +186,14 @@ check-sdk-prereqs: ## Verify prerequisites for sdk integration tests
 	@echo "SDK integration prerequisites OK"
 
 fmt: ## Format Go code
-	$(GO) fmt ./cmd/...
+	$(GO) fmt ./cmd/... ./internal/...
 
 lint: lint-go ## Run lint checks
 
 lint-go: ## Run Go vet and golangci-lint when available
-	$(GO) vet ./cmd/adapter/...
+	$(GO) vet ./cmd/... ./internal/...
 	@if command -v golangci-lint >/dev/null 2>&1; then \
-		golangci-lint run ./cmd/adapter/...; \
+		golangci-lint run ./cmd/... ./internal/...; \
 	else \
 		echo "golangci-lint not installed; skipped"; \
 	fi

@@ -35,6 +35,8 @@ go.work.sum
 bin/
 dist/
 .cache/
+/adapter
+/tray
 
 # Node.js
 node_modules/
