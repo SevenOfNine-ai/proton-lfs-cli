@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -11,10 +14,12 @@ import (
 )
 
 const pollInterval = 5 * time.Second
+const refreshInterval = 15 * time.Minute
 
 var (
-	stopCh   chan struct{}
-	stopOnce sync.Once
+	stopCh      chan struct{}
+	stopOnce    sync.Once
+	lastRefresh time.Time
 )
 
 func startStatusWatcher() {
@@ -37,10 +42,39 @@ func watchLoop() {
 		select {
 		case <-ticker.C:
 			applyStatus()
+			maybeRefreshSession()
 		case <-stopCh:
 			return
 		}
 	}
+}
+
+// maybeRefreshSession proactively refreshes the Proton session token
+// every 15 minutes to keep the session alive. This calls POST /auth/v4/refresh
+// (NOT a login attempt) — it never triggers CAPTCHA or rate-limiting.
+func maybeRefreshSession() {
+	if time.Since(lastRefresh) < refreshInterval {
+		return
+	}
+
+	// Check if a session file exists (no point refreshing if not logged in)
+	sessionFile := filepath.Join(os.Getenv("HOME"), ".proton-drive-cli", "session.json")
+	if _, err := os.Stat(sessionFile); os.IsNotExist(err) {
+		return
+	}
+
+	driveCLI := discoverDriveCLIBinary()
+	if driveCLI == "" {
+		return
+	}
+
+	lastRefresh = time.Now()
+
+	// Spawn in background — don't block the status poll loop
+	go func() {
+		cmd := exec.Command(driveCLI, "session", "refresh")
+		_ = cmd.Run()
+	}()
 }
 
 func applyStatus() {
