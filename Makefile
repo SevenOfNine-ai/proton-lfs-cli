@@ -102,6 +102,8 @@ install: build-bundle ## Install bundle (macOS: .app to /Applications, or set IN
 		"$(INSTALL_APP)/Contents/Helpers/git-lfs-proton-adapter" \
 		"$(INSTALL_APP)/Contents/Helpers/proton-drive-cli"
 	@bash scripts/ensure-info-plist.sh "$(INSTALL_APP)/Contents/Info.plist" "$(VERSION)"
+	@codesign --force --deep --sign - "$(INSTALL_APP)"
+	@xattr -dr com.apple.quarantine "$(INSTALL_APP)" 2>/dev/null || true
 	@mkdir -p "$(INSTALL_BIN)"
 	@rm -f "$(INSTALL_BIN)/proton-git-lfs"
 	@cp dist/proton-git-lfs-tray "$(INSTALL_BIN)/proton-git-lfs"
