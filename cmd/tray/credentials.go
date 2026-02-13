@@ -109,13 +109,19 @@ func (p *passCliLoginItem) DisplayName() string {
 
 // gitCredentialVerify checks whether credentials exist in the git credential
 // helper by running proton-drive-cli credential verify.
+// GIT_TERMINAL_PROMPT=0 and GCM_INTERACTIVE=never suppress interactive
+// prompts so the check is truly silent.
 func gitCredentialVerify() bool {
 	driveCLI := discoverDriveCLIBinary()
 	if driveCLI == "" {
 		return false
 	}
-	err := exec.Command(driveCLI, "credential", "verify").Run()
-	return err == nil
+	cmd := exec.Command(driveCLI, "credential", "verify", "-q")
+	cmd.Env = append(cmd.Environ(),
+		"GIT_TERMINAL_PROMPT=0",
+		"GCM_INTERACTIVE=never",
+	)
+	return cmd.Run() == nil
 }
 
 // passCliIsLoggedIn checks whether pass-cli is logged in by running pass-cli test.
