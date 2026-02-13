@@ -31,9 +31,11 @@ The project has four main components:
    - `config_constants.go`: Thin wrapper delegating to `internal/config`
 
 2. **System Tray App** (`cmd/tray/`): Cross-platform menu bar application
-   - `main.go`: Entry point using `fyne.io/systray`
-   - `menu.go`: Menu structure, credential provider toggle, Git LFS registration
-   - `status.go`: Polls `~/.proton-git-lfs/status.json` every 5s, updates icon/text
+   - `main.go`: Entry point, `--version` flag, PATH augmentation for macOS
+   - `menu.go`: Menu structure, credential provider toggle, LFS registration, native notifications
+   - `connect.go`: Smart "Connect to Proton" state machine (git-credential and pass-cli flows)
+   - `credentials.go`: Credential helpers (git-credential verify, pass-cli search/login check)
+   - `status.go`: Polls status.json every 5s, updates icon/tooltip/checkmarks
    - `setup.go`: Binary discovery, autostart (macOS LaunchAgent / Linux .desktop)
    - `icons/`: Embedded 64x64 PNG icons (idle/ok/error/syncing)
 
@@ -58,6 +60,8 @@ make build-sea          # Build proton-drive-cli as standalone SEA binary (Node.
 make build-bundle       # Build all 3 components into dist/ for packaging
 make build-all          # Build adapter + tray + Git LFS submodule + proton-drive-cli
 make build-drive-cli    # Build proton-drive-cli TypeScript bridge only
+make install            # Build bundle + install (.app on macOS, ~/.local/bin on Linux)
+make uninstall          # Remove installed bundle
 ```
 
 ### Testing

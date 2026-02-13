@@ -60,6 +60,12 @@ make install          # Build all components and install
 | macOS | `/Applications/ProtonGitLFS.app` | `INSTALL_APP=/path/to/App.app make install` |
 | Linux | `~/.local/bin/` | `INSTALL_BIN=/usr/local/bin make install` |
 
+On both platforms, `make install` also places a `proton-git-lfs` CLI entry point on your PATH (`~/.local/bin/proton-git-lfs`):
+
+```bash
+proton-git-lfs --version
+```
+
 To uninstall:
 
 ```bash
@@ -133,24 +139,29 @@ The system tray app provides a menu bar interface for managing Proton Git LFS. I
 ```
 Proton Git LFS v...
 ─────────────────────────────
-Last Transfer: —
-Session: Not logged in
-─────────────────────────────
 Credential Store              >
   ✓ Git Credential Manager
     Proton Pass
 ─────────────────────────────
-Connect to Proton…
-Enable LFS Backend
+  Connect to Proton…
+  Enable LFS Backend
 ─────────────────────────────
-Start at System Login
+  Start at System Login
 ─────────────────────────────
 Quit
 ```
 
+After connecting and enabling LFS, the checkmarks update automatically:
+
+```
+✓ Connected to Proton
+✓ LFS Backend Enabled
+✓ Start at System Login
+```
+
 ### Status indicators
 
-The tray icon changes color based on the adapter's state:
+**Tray icon** changes color based on the adapter's state:
 
 | Icon | State | Meaning |
 | --- | --- | --- |
@@ -158,6 +169,8 @@ The tray icon changes color based on the adapter's state:
 | Green | ok | Last transfer succeeded |
 | Red | error | Last transfer failed |
 | Blue | transferring | Transfer in progress |
+
+**Menu checkmarks** next to "Connect to Proton" and "Enable LFS Backend" update every 5 seconds based on session file and git config state. Transfer direction (uploading/downloading) is shown in the tray tooltip.
 
 Status is read from `~/.proton-git-lfs/status.json`, polled every 5 seconds.
 
@@ -177,9 +190,9 @@ The "Connect to Proton..." button handles the full authentication flow automatic
 1. **Checks** if credentials are already stored (silent subprocess)
 2. **If missing** — opens a Terminal window for interactive credential setup
 3. **If present** — logs in to Proton silently in the background
-4. **Shows feedback** in the menu item: "Connecting...", "Connected ✓", or "Error: login failed"
+4. **Shows feedback** via native OS notification ("Connected to Proton", "Login failed", etc.)
 
-After a successful connection, the session line updates to "Session: Logged in" within 5 seconds. The tray app also refreshes the session token every 15 minutes to keep it alive.
+After a successful connection, the checkmark appears within 5 seconds. The tray app also refreshes the session token every 15 minutes to keep it alive.
 
 ### Enable LFS Backend
 
