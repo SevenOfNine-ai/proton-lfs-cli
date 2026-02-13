@@ -22,6 +22,10 @@ const (
 	CredentialProviderGitCredential = "git-credential"
 )
 
+// ProtonCredentialHost is the host used for git credential fill/approve and
+// Proton Pass URL matching. Must match PROTON_CREDENTIAL_HOST in proton-drive-cli.
+const ProtonCredentialHost = "proton.me"
+
 // Default values
 const (
 	DefaultDriveCLIBin        = "submodules/proton-drive-cli/dist/index.js"

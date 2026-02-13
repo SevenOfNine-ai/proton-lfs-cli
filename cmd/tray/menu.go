@@ -3,8 +3,10 @@ package main
 import (
 	"embed"
 	"fmt"
+	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 
 	"fyne.io/systray"
 
@@ -23,10 +25,10 @@ var (
 
 // Menu items that get updated dynamically.
 var (
-	mStatus       *systray.MenuItem
-	mLastTransfer *systray.MenuItem
-	mCredGit      *systray.MenuItem
-	mCredPass     *systray.MenuItem
+	mCredGit  *systray.MenuItem
+	mCredPass *systray.MenuItem
+	mConnect  *systray.MenuItem
+	mRegister *systray.MenuItem
 )
 
 func init() {
@@ -46,28 +48,21 @@ func setupMenu() {
 
 	systray.AddSeparator()
 
-	mStatus = systray.AddMenuItem("Status: Starting…", "")
-	mStatus.Disable()
-	mLastTransfer = systray.AddMenuItem("Last Transfer: —", "")
-	mLastTransfer.Disable()
-
-	systray.AddSeparator()
-
-	mCredMenu := systray.AddMenuItem("Credential Provider", "")
-	mCredGit = mCredMenu.AddSubMenuItem("git-credential", "Use Git Credential Manager")
-	mCredPass = mCredMenu.AddSubMenuItem("pass-cli", "Use Proton Pass CLI")
+	mCredMenu := systray.AddMenuItem("Credential Store", "Choose where your Proton credentials are stored")
+	mCredGit = mCredMenu.AddSubMenuItem("Git Credential Manager", "macOS Keychain, Windows Credential Manager, or Linux Secret Service")
+	mCredPass = mCredMenu.AddSubMenuItem("Proton Pass", "Proton Pass CLI (pass-cli) for encrypted credential storage")
 
 	prefs := config.LoadPrefs()
 	applyCredCheckmarks(prefs.CredentialProvider)
 
 	systray.AddSeparator()
 
-	mSetup := systray.AddMenuItem("Setup Credentials…", "Open terminal to configure credentials")
-	mRegister := systray.AddMenuItem("Register with Git LFS", "Configure git-lfs to use Proton adapter")
+	mConnect = systray.AddMenuItem(connectTitle(false), "Store credentials and authenticate with Proton")
+	mRegister = systray.AddMenuItem(registerTitle(false), "Configure Git to route LFS transfers through Proton Drive")
 
 	systray.AddSeparator()
 
-	mAutoStart := systray.AddMenuItemCheckbox("Launch at Login", "Start Proton Git LFS when you log in", isAutoStartEnabled())
+	mAutoStart := systray.AddMenuItemCheckbox("Start at System Login", "Automatically launch the tray app when you log in to your computer", isAutoStartEnabled())
 
 	systray.AddSeparator()
 
@@ -81,8 +76,8 @@ func setupMenu() {
 				switchCredentialProvider(config.CredentialProviderGitCredential)
 			case <-mCredPass.ClickedCh:
 				switchCredentialProvider(config.CredentialProviderPassCLI)
-			case <-mSetup.ClickedCh:
-				launchCredentialSetup()
+			case <-mConnect.ClickedCh:
+				connectToProton()
 			case <-mRegister.ClickedCh:
 				registerGitLFS()
 			case <-mAutoStart.ClickedCh:
@@ -93,6 +88,22 @@ func setupMenu() {
 			}
 		}
 	}()
+}
+
+// connectTitle returns the menu title for the Connect item.
+func connectTitle(connected bool) string {
+	if connected {
+		return "\u2705 Connected to Proton"
+	}
+	return "\u274c Connect to Proton\u2026"
+}
+
+// registerTitle returns the menu title for the Register item.
+func registerTitle(enabled bool) string {
+	if enabled {
+		return "\u2705 LFS Backend Enabled"
+	}
+	return "\u274c Enable LFS Backend"
 }
 
 func applyCredCheckmarks(provider string) {
@@ -112,25 +123,16 @@ func switchCredentialProvider(provider string) {
 	applyCredCheckmarks(provider)
 }
 
-func launchCredentialSetup() {
-	prefs := config.LoadPrefs()
-	var cmd *exec.Cmd
-	if prefs.CredentialProvider == config.CredentialProviderGitCredential {
-		cmd = terminalCommand("echo 'Store credentials with: proton-drive credential store -u <email>' && read -p 'Press Enter to close...'")
-	} else {
-		cmd = terminalCommand("echo 'Login with: pass-cli login' && read -p 'Press Enter to close...'")
-	}
-	if cmd != nil {
-		_ = cmd.Start()
-	}
-}
-
 func registerGitLFS() {
 	adapterPath := discoverAdapterBinary()
 	if adapterPath == "" {
+		sendNotification("Error: adapter binary not found")
 		return
 	}
-	_ = exec.Command("git", "config", "--global", "lfs.customtransfer.proton.path", adapterPath).Run()
+	if err := exec.Command("git", "config", "--global", "lfs.customtransfer.proton.path", adapterPath).Run(); err != nil {
+		sendNotification("Error: git config failed")
+		return
+	}
 
 	prefs := config.LoadPrefs()
 	driveCLIPath := discoverDriveCLIBinary()
@@ -141,8 +143,48 @@ func registerGitLFS() {
 	if driveCLIPath != "" {
 		args += " --drive-cli-bin " + driveCLIPath
 	}
-	_ = exec.Command("git", "config", "--global", "lfs.customtransfer.proton.args", args).Run()
-	_ = exec.Command("git", "config", "--global", "lfs.standalonetransferagent", "proton").Run()
+	if err := exec.Command("git", "config", "--global", "lfs.customtransfer.proton.args", args).Run(); err != nil {
+		sendNotification("Error: git config failed")
+		return
+	}
+	if err := exec.Command("git", "config", "--global", "lfs.standalonetransferagent", "proton").Run(); err != nil {
+		sendNotification("Error: git config failed")
+		return
+	}
+
+	mRegister.SetTitle(registerTitle(true))
+	sendNotification("LFS Backend Enabled")
+}
+
+// isLFSEnabled checks whether the Proton LFS adapter is registered in git global config.
+func isLFSEnabled() bool {
+	out, err := exec.Command("git", "config", "--global", "lfs.standalonetransferagent").Output()
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(string(out)) == "proton"
+}
+
+// isSessionActive checks whether a proton-drive-cli session file exists.
+func isSessionActive() bool {
+	sf := sessionFilePath()
+	if sf == "" {
+		return false
+	}
+	_, err := os.Stat(sf)
+	return err == nil
+}
+
+// sendNotification shows a native macOS notification banner, or falls back
+// to notify-send on Linux.
+func sendNotification(msg string) {
+	switch runtime.GOOS {
+	case "darwin":
+		_ = exec.Command("osascript", "-e",
+			fmt.Sprintf(`display notification "%s" with title "Proton Git LFS"`, msg)).Start()
+	case "linux":
+		_ = exec.Command("notify-send", "Proton Git LFS", msg).Start()
+	}
 }
 
 func toggleAutoStart(item *systray.MenuItem) {
@@ -161,8 +203,7 @@ func toggleAutoStart(item *systray.MenuItem) {
 func terminalCommand(script string) *exec.Cmd {
 	switch runtime.GOOS {
 	case "darwin":
-		return exec.Command("osascript", "-e",
-			fmt.Sprintf(`tell application "Terminal" to do script "%s"`, script))
+		return terminalCommandDarwin(script)
 	case "linux":
 		// Try common terminal emulators
 		for _, term := range []string{"x-terminal-emulator", "gnome-terminal", "xterm"} {
@@ -176,4 +217,22 @@ func terminalCommand(script string) *exec.Cmd {
 	default:
 		return nil
 	}
+}
+
+// terminalCommandDarwin writes the script to a temp file and tells Terminal
+// to execute it. This avoids the raw command being echoed in the terminal.
+func terminalCommandDarwin(script string) *exec.Cmd {
+	f, err := os.CreateTemp("", "proton-lfs-*.sh")
+	if err != nil {
+		return nil
+	}
+	content := "#!/bin/zsh\nclear\n" + script + "\nrm -f \"$0\"\n"
+	if _, err := f.WriteString(content); err != nil {
+		_ = f.Close()
+		return nil
+	}
+	_ = f.Close()
+	_ = os.Chmod(f.Name(), 0o700)
+	return exec.Command("osascript", "-e",
+		fmt.Sprintf(`tell application "Terminal" to do script "%s"`, f.Name()))
 }
