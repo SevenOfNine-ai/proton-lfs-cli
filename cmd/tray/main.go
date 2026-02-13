@@ -2,6 +2,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -13,6 +14,10 @@ import (
 var Version = "dev"
 
 func main() {
+	if len(os.Args) > 1 && (os.Args[1] == "--version" || os.Args[1] == "-v") {
+		fmt.Printf("proton-git-lfs %s\n", Version)
+		return
+	}
 	augmentPath()
 	systray.Run(onReady, onExit)
 }

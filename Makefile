@@ -102,10 +102,16 @@ install: build-bundle ## Install bundle (macOS: .app to /Applications, or set IN
 		"$(INSTALL_APP)/Contents/Helpers/git-lfs-proton-adapter" \
 		"$(INSTALL_APP)/Contents/Helpers/proton-drive-cli"
 	@bash scripts/ensure-info-plist.sh "$(INSTALL_APP)/Contents/Info.plist" "$(VERSION)"
+	@mkdir -p "$(INSTALL_BIN)"
+	@rm -f "$(INSTALL_BIN)/proton-git-lfs"
+	@cp dist/proton-git-lfs-tray "$(INSTALL_BIN)/proton-git-lfs"
+	@chmod +x "$(INSTALL_BIN)/proton-git-lfs"
 	@echo "Installed to $(INSTALL_APP)"
+	@echo "CLI: $(INSTALL_BIN)/proton-git-lfs"
 
 uninstall: ## Remove installed .app bundle
 	rm -rf "$(INSTALL_APP)"
+	rm -f "$(INSTALL_BIN)/proton-git-lfs"
 	@echo "Removed $(INSTALL_APP)"
 
 else
@@ -131,6 +137,7 @@ install: build-bundle ## Install bundle (Linux: binaries to ~/.local/bin, or set
 	@chmod +x "$(INSTALL_BIN)/proton-git-lfs-tray" \
 		"$(INSTALL_BIN)/proton-drive-cli" \
 		"$(INSTALL_BIN)/git-lfs-proton-adapter"
+	@ln -sf "$(INSTALL_BIN)/proton-git-lfs-tray" "$(INSTALL_BIN)/proton-git-lfs"
 	@echo "Installed to $(INSTALL_BIN)"
 
 uninstall: ## Remove installed binaries
@@ -140,7 +147,8 @@ uninstall: ## Remove installed binaries
 	fi
 	rm -f "$(INSTALL_BIN)/proton-git-lfs-tray" \
 		"$(INSTALL_BIN)/git-lfs-proton-adapter" \
-		"$(INSTALL_BIN)/proton-drive-cli"
+		"$(INSTALL_BIN)/proton-drive-cli" \
+		"$(INSTALL_BIN)/proton-git-lfs"
 	@echo "Removed binaries from $(INSTALL_BIN)"
 
 endif
