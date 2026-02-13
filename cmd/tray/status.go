@@ -63,15 +63,15 @@ func sessionFilePath() string {
 }
 
 // applyLoginStatus checks whether a session file exists and updates the
-// Connect menu item with a ✅/❌ indicator.
+// Connect menu item checkmark.
 func applyLoginStatus() {
-	mConnect.SetTitle(connectTitle(isSessionActive()))
+	applyConnectStatus(isSessionActive())
 }
 
 // applyLFSStatus checks whether the Proton LFS adapter is registered in
-// git global config and updates the Register menu item with a ✅/❌ indicator.
+// git global config and updates the Register menu item checkmark.
 func applyLFSStatus() {
-	mRegister.SetTitle(registerTitle(isLFSEnabled()))
+	applyRegisterStatus(isLFSEnabled())
 }
 
 // maybeRefreshSession proactively refreshes the Proton session token

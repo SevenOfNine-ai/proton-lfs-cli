@@ -57,8 +57,8 @@ func setupMenu() {
 
 	systray.AddSeparator()
 
-	mConnect = systray.AddMenuItem(connectTitle(false), "Store credentials and authenticate with Proton")
-	mRegister = systray.AddMenuItem(registerTitle(false), "Configure Git to route LFS transfers through Proton Drive")
+	mConnect = systray.AddMenuItemCheckbox("Connect to Proton\u2026", "Store credentials and authenticate with Proton", false)
+	mRegister = systray.AddMenuItemCheckbox("Enable LFS Backend", "Configure Git to route LFS transfers through Proton Drive", false)
 
 	systray.AddSeparator()
 
@@ -90,20 +90,26 @@ func setupMenu() {
 	}()
 }
 
-// connectTitle returns the menu title for the Connect item.
-func connectTitle(connected bool) string {
+// applyConnectStatus updates the Connect menu item checkmark and title.
+func applyConnectStatus(connected bool) {
 	if connected {
-		return "\u2705 Connected to Proton"
+		mConnect.SetTitle("Connected to Proton")
+		mConnect.Check()
+	} else {
+		mConnect.SetTitle("Connect to Proton\u2026")
+		mConnect.Uncheck()
 	}
-	return "\u274c Connect to Proton\u2026"
 }
 
-// registerTitle returns the menu title for the Register item.
-func registerTitle(enabled bool) string {
+// applyRegisterStatus updates the Register menu item checkmark and title.
+func applyRegisterStatus(enabled bool) {
 	if enabled {
-		return "\u2705 LFS Backend Enabled"
+		mRegister.SetTitle("LFS Backend Enabled")
+		mRegister.Check()
+	} else {
+		mRegister.SetTitle("Enable LFS Backend")
+		mRegister.Uncheck()
 	}
-	return "\u274c Enable LFS Backend"
 }
 
 func applyCredCheckmarks(provider string) {
@@ -152,7 +158,7 @@ func registerGitLFS() {
 		return
 	}
 
-	mRegister.SetTitle(registerTitle(true))
+	applyRegisterStatus(true)
 	sendNotification("LFS Backend Enabled")
 }
 

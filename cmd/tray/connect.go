@@ -48,7 +48,7 @@ func connectGitCredential() {
 			return
 		}
 		sendNotification("Connected to Proton")
-		mConnect.SetTitle(connectTitle(true))
+		applyConnectStatus(true)
 	}()
 }
 
@@ -105,7 +105,7 @@ printf 'Press Enter to close... ' && read`, config.ProtonCredentialHost)
 			return
 		}
 		sendNotification("Connected to Proton")
-		mConnect.SetTitle(connectTitle(true))
+		applyConnectStatus(true)
 	}()
 }
 
