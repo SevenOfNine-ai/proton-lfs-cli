@@ -105,15 +105,15 @@ install: build-bundle ## Install bundle (macOS: .app to /Applications, or set IN
 	@codesign --force --deep --sign - "$(INSTALL_APP)"
 	@xattr -dr com.apple.quarantine "$(INSTALL_APP)" 2>/dev/null || true
 	@mkdir -p "$(INSTALL_BIN)"
-	@rm -f "$(INSTALL_BIN)/proton-git-lfs"
-	@cp dist/proton-git-lfs-tray "$(INSTALL_BIN)/proton-git-lfs"
-	@chmod +x "$(INSTALL_BIN)/proton-git-lfs"
+	@ln -sf "$(INSTALL_APP)/Contents/MacOS/proton-git-lfs-tray" "$(INSTALL_BIN)/proton-git-lfs"
+	@ln -sf "$(INSTALL_APP)/Contents/Helpers/proton-drive-cli" "$(INSTALL_BIN)/proton-drive-cli"
 	@echo "Installed to $(INSTALL_APP)"
 	@echo "CLI: $(INSTALL_BIN)/proton-git-lfs"
+	@echo "CLI: $(INSTALL_BIN)/proton-drive-cli"
 
 uninstall: ## Remove installed .app bundle
 	rm -rf "$(INSTALL_APP)"
-	rm -f "$(INSTALL_BIN)/proton-git-lfs"
+	rm -f "$(INSTALL_BIN)/proton-git-lfs" "$(INSTALL_BIN)/proton-drive-cli"
 	@echo "Removed $(INSTALL_APP)"
 
 else

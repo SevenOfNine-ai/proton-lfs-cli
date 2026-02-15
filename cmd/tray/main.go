@@ -22,8 +22,38 @@ func main() {
 		case "--help", "-h":
 			fmt.Print(usage)
 			return
+		case "login":
+			if hasHelpFlag(os.Args[2:]) {
+				fmt.Println("Usage: proton-git-lfs login\n\nAuthenticate with Proton using the configured credential provider.")
+				return
+			}
+			augmentPath()
+			os.Exit(cliLogin(os.Stdout))
+		case "logout":
+			if hasHelpFlag(os.Args[2:]) {
+				fmt.Println("Usage: proton-git-lfs logout\n\nLog out and clear the current Proton session.")
+				return
+			}
+			augmentPath()
+			os.Exit(cliLogout(os.Stdout))
+		case "register":
+			if hasHelpFlag(os.Args[2:]) {
+				fmt.Println("Usage: proton-git-lfs register\n\nEnable the Proton LFS backend in git global config.")
+				return
+			}
+			augmentPath()
+			os.Exit(cliRegister(os.Stdout))
+		case "status":
+			if hasHelpFlag(os.Args[2:]) {
+				fmt.Println("Usage: proton-git-lfs status\n\nShow session, LFS registration, credential provider, and transfer status.")
+				return
+			}
+			augmentPath()
+			os.Exit(cliStatus(os.Stdout))
+		case "config":
+			os.Exit(cliConfig(os.Stdout, os.Args[2:]))
 		default:
-			fmt.Fprintf(os.Stderr, "unknown flag: %s\n", os.Args[1])
+			fmt.Fprintf(os.Stderr, "unknown command: %s\n", os.Args[1])
 			fmt.Fprint(os.Stderr, usage)
 			os.Exit(1)
 		}
@@ -36,19 +66,19 @@ func main() {
 	systray.Run(onReady, onExit)
 }
 
-const usage = `Proton Git LFS — system tray app and CLI entry point
+const usage = `Proton Git LFS — system tray app and CLI
 
 Usage:
-  proton-git-lfs            Launch the system tray app
-  proton-git-lfs --version  Print version and exit
-  proton-git-lfs --help     Show this help
+  proton-git-lfs                   Launch the system tray app
+  proton-git-lfs login             Authenticate with Proton
+  proton-git-lfs logout            Log out and clear session
+  proton-git-lfs register          Enable LFS backend (git config --global)
+  proton-git-lfs status            Show session, LFS, and transfer status
+  proton-git-lfs config [provider] Show or set credential provider
+  proton-git-lfs --version         Print version and exit
+  proton-git-lfs --help            Show this help
 
-The tray app runs in the menu bar and provides:
-  • Credential provider selection (Git Credential Manager / Proton Pass)
-  • One-click Connect to Proton (auto-detects credential state)
-  • LFS backend registration (git config)
-  • Transfer status monitoring (icon + tooltip)
-  • Session keep-alive (token refresh every 15 min)
+Credential providers: git-credential, pass-cli
 `
 
 func onReady() {
@@ -122,4 +152,14 @@ func releaseLock() {
 	if lockFile != "" {
 		_ = os.Remove(lockFile)
 	}
+}
+
+// hasHelpFlag returns true if args contains --help or -h.
+func hasHelpFlag(args []string) bool {
+	for _, a := range args {
+		if a == "--help" || a == "-h" {
+			return true
+		}
+	}
+	return false
 }
