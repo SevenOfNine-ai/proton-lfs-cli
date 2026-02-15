@@ -367,28 +367,18 @@ Uses Proton Pass CLI for encrypted credential storage. This is the default provi
 pass-cli login
 ```
 
-Credentials should be stored as a login item with a `proton.me` URL in any vault. The adapter searches all vaults for the first matching entry.
+Credentials should be stored as a login item with a `proton.me` URL in any vault. `proton-drive-cli` searches all vaults for the first matching entry.
 
-Alternatively, store credentials at the default pass references:
-
-- `pass://Personal/Proton Git LFS/username`
-- `pass://Personal/Proton Git LFS/password`
-
-**Export credential references** (needed for CLI usage without the tray app):
+**Setup via CLI:**
 
 ```bash
-eval "$(./scripts/export-pass-env.sh)"
-# or
-eval "$(make -s pass-env)"
+proton-drive credential store --provider pass-cli   # Create entry interactively
+proton-drive credential verify --provider pass-cli  # Verify entry exists
 ```
 
-**Override references** with environment variables or adapter flags if your Proton Pass vault uses different names:
+**How it works:** The adapter sends `{ "credentialProvider": "pass-cli" }` to proton-drive-cli, which resolves credentials by searching Proton Pass vaults internally. The Go adapter never sees raw credentials.
 
-```
-PROTON_PASS_REF_ROOT=pass://Personal/Proton Git LFS
-PROTON_PASS_USERNAME_REF=pass://Personal/Proton Git LFS/username
-PROTON_PASS_PASSWORD_REF=pass://Personal/Proton Git LFS/password
-```
+The `PROTON_PASS_CLI_BIN` environment variable can override the pass-cli binary path (default: `pass-cli`).
 
 ## Global vs Per-Repo Configuration
 
@@ -443,9 +433,6 @@ The adapter reads JSON messages from stdin and writes JSON responses to stdout, 
 | `--drive-cli-bin` | `PROTON_DRIVE_CLI_BIN` | (auto-detected) | Path to the proton-drive-cli binary (sdk backend only) |
 | `--local-store-dir` | `PROTON_LFS_LOCAL_STORE_DIR` | (none) | Directory for local object storage (local backend only) |
 | `--allow-mock-transfers` | `ADAPTER_ALLOW_MOCK_TRANSFERS` | `false` | Enable mock transfer simulation (testing only) |
-| `--proton-pass-cli` | `PROTON_PASS_CLI_BIN` | `pass-cli` | Path to the pass-cli binary |
-| `--proton-pass-username-ref` | `PROTON_PASS_USERNAME_REF` | `pass://Personal/Proton Git LFS/username` | pass-cli reference for Proton username |
-| `--proton-pass-password-ref` | `PROTON_PASS_PASSWORD_REF` | `pass://Personal/Proton Git LFS/password` | pass-cli reference for Proton password |
 | `--debug` | — | `false` | Enable debug logging to stderr |
 | `--version` | — | — | Print version and exit |
 
