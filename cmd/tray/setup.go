@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 )
@@ -71,6 +72,18 @@ func driveCLICandidates(exeDir string) []string {
 		candidates = append(candidates, filepath.Join(exeDir, "..", "Helpers", name))
 	}
 	return candidates
+}
+
+// discoverPassCLIBinary finds pass-cli in PATH using exec.LookPath.
+// Returns the absolute path if found, empty string otherwise.
+// This is needed because macOS .app bundles get a minimal PATH and pass-cli
+// is often installed in ~/.local/bin or via Homebrew.
+func discoverPassCLIBinary() string {
+	path, err := exec.LookPath("pass-cli")
+	if err != nil {
+		return ""
+	}
+	return path
 }
 
 const launchAgentLabel = "com.proton.git-lfs-tray"
