@@ -11,12 +11,21 @@ import (
 func credentialVerify(provider string) bool {
 	driveCLI := discoverDriveCLIBinary()
 	if driveCLI == "" {
+		trayLog.Print("credential-verify: proton-drive-cli not found")
 		return false
 	}
-	cmd := exec.Command(driveCLI, "credential", "verify", "--provider", provider, "-q")
+	args := []string{"credential", "verify", "--provider", provider, "-q"}
+	trayLog.Printf("credential-verify: exec %s %v", driveCLI, args)
+	cmd := exec.Command(driveCLI, args...)
 	cmd.Env = append(cmd.Environ(),
 		"GIT_TERMINAL_PROMPT=0",
 		"GCM_INTERACTIVE=never",
 	)
-	return cmd.Run() == nil
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		trayLog.Printf("credential-verify: failed: %v\n  output: %s", err, out)
+		return false
+	}
+	trayLog.Print("credential-verify: ok")
+	return true
 }

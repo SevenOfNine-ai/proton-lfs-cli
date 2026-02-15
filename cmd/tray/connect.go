@@ -14,14 +14,18 @@ import (
 func connectToProton() {
 	driveCLI := discoverDriveCLIBinary()
 	if driveCLI == "" {
+		trayLog.Print("connect: proton-drive-cli binary not found")
 		sendNotification("Error: CLI not found")
 		return
 	}
+	trayLog.Printf("connect: using drive-cli at %s", driveCLI)
 
 	prefs := config.LoadPrefs()
 	provider := prefs.CredentialProvider
+	trayLog.Printf("connect: credential provider = %s", provider)
 
 	if !credentialVerify(provider) {
+		trayLog.Print("connect: credentials not found, opening terminal for interactive store")
 		// No credentials stored — open terminal for interactive store
 		script := fmt.Sprintf("'%s' credential store --provider %s; echo; printf 'Press Enter to close... ' && read", driveCLI, provider)
 		cmd := terminalCommand(script)
@@ -33,12 +37,15 @@ func connectToProton() {
 	}
 
 	// Credentials exist — log in silently
+	trayLog.Print("connect: credentials verified, starting login")
 	sendNotification("Connecting…")
 	go func() {
 		if err := protonDriveLogin(driveCLI, "--credential-provider", provider); err != nil {
+			trayLog.Printf("connect: login failed: %v", err)
 			sendNotification("Login failed")
 			return
 		}
+		trayLog.Print("connect: login succeeded")
 		sendNotification("Connected to Proton")
 		applyConnectStatus(true)
 	}()
@@ -48,5 +55,11 @@ func connectToProton() {
 func protonDriveLogin(driveCLI string, args ...string) error {
 	cmdArgs := append([]string{"login"}, args...)
 	cmdArgs = append(cmdArgs, "-q")
-	return exec.Command(driveCLI, cmdArgs...).Run()
+	trayLog.Printf("connect: exec %s %v", driveCLI, cmdArgs)
+	cmd := exec.Command(driveCLI, cmdArgs...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		trayLog.Printf("connect: exec failed: %v\n  output: %s", err, out)
+	}
+	return err
 }
