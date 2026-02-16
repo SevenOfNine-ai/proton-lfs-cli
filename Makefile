@@ -19,6 +19,7 @@ GO_CACHE_DIR := .cache/go-build
 	test test-adapter test-tray test-lfs test-integration test-integration-timeout test-integration-stress test-integration-sdk test-e2e-mock test-e2e-real test-all \
 	pass-env check-sdk-prereqs check-sdk-real-prereqs \
 	fmt lint lint-go \
+	docs docs-lint \
 	clean status install-hooks
 
 .DEFAULT_GOAL := help
@@ -301,6 +302,18 @@ status: ## Print project status
 		echo "JS PM ($(JS_PM)): not found"; \
 	fi
 	@echo "Adapter binary: $$([ -f $(ADAPTER_BIN) ] && echo present || echo missing)"
+
+docs: docs-lint ## Validate documentation
+
+docs-lint: ## Lint markdown files
+	@echo "Linting markdown files..."
+	@if ! command -v npx >/dev/null 2>&1; then \
+		echo "Error: npx not found. Install Node.js first."; \
+		exit 1; \
+	fi
+	@npx --yes markdownlint-cli2 \
+		--config .markdownlint.json \
+		"README.md" "USAGE.md" "SECURITY.md" "docs/**/*.md"
 
 clean: ## Remove generated files
 	rm -rf bin
