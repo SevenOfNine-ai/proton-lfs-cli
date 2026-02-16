@@ -340,26 +340,26 @@ docs: docs-ts docs-go
 
 # Generate TypeScript docs
 docs-ts:
-	cd submodules/proton-drive-cli && yarn docs
+    cd submodules/proton-drive-cli && yarn docs
 
 # Serve Go docs locally
 docs-go:
-	@echo "Starting Go documentation server..."
-	@echo "Visit http://localhost:6060/github.com/SevenOfNine-ai/proton-git-lfs"
-	pkgsite -http=:6060
+    @echo "Starting Go documentation server..."
+    @echo "Visit http://localhost:6060/github.com/SevenOfNine-ai/proton-git-lfs"
+    pkgsite -http=:6060
 
 # Preview unified docs
 docs-preview: docs
-	@echo "Generating unified preview..."
-	@mkdir -p docs-preview
-	@cp -r submodules/proton-drive-cli/docs/api docs-preview/typescript
-	@echo "Serving at http://localhost:8080"
-	@npx http-server docs-preview -p 8080
+    @echo "Generating unified preview..."
+    @mkdir -p docs-preview
+    @cp -r submodules/proton-drive-cli/docs/api docs-preview/typescript
+    @echo "Serving at http://localhost:8080"
+    @npx http-server docs-preview -p 8080
 
 # Clean generated docs
 docs-clean:
-	rm -rf submodules/proton-drive-cli/docs/api
-	rm -rf docs-preview
+    rm -rf submodules/proton-drive-cli/docs/api
+    rm -rf docs-preview
 ```
 
 ## CI/CD Best Practices

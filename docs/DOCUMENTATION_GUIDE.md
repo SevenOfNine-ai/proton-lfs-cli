@@ -7,18 +7,25 @@ Go has built-in documentation support via `godoc` and `go doc`. This guide shows
 ## Quick Start
 
 ```bash
+
 # View documentation for a package
+
 go doc ./cmd/adapter
 
 # View documentation for a function
+
 go doc ./cmd/adapter.handleUploadBatch
 
 # Serve documentation locally (Go 1.21+)
+
 go run golang.org/x/pkgsite/cmd/pkgsite@latest -open .
 
 # Or use traditional godoc (Go <1.21)
+
 godoc -http=:6060
+
 # Open http://localhost:6060
+
 ```
 
 ## Go Doc Comment Syntax
@@ -46,8 +53,8 @@ godoc -http=:6060
 //
 // Configure Git LFS to use the adapter:
 //
-//	git config lfs.standalonetransferagent proton
-//	git config lfs.customtransfer.proton.path git-lfs-proton-adapter
+//    git config lfs.standalonetransferagent proton
+//    git config lfs.customtransfer.proton.path git-lfs-proton-adapter
 //
 // # Protocol
 //
@@ -55,6 +62,7 @@ godoc -http=:6060
 // JSON messages over stdin/stdout. See:
 // https://github.com/git-lfs/git-lfs/blob/main/docs/custom-transfers.md
 package adapter
+
 ```
 
 ### Function Documentation
@@ -91,17 +99,18 @@ package adapter
 //
 // Example:
 //
-//	err := UploadFile("abc123...", "/tmp/file.bin", "/LFS/ab/c1/abc123...")
-//	if err != nil {
-//	    log.Fatalf("Upload failed: %v", err)
-//	}
+//    err := UploadFile("abc123...", "/tmp/file.bin", "/LFS/ab/c1/abc123...")
+//    if err != nil {
+//        log.Fatalf("Upload failed: %v", err)
+//    }
 //
 // See also:
 //   - DownloadFile for downloading files
 //   - validateOID for OID validation logic
 func UploadFile(oid, localPath, remotePath string) error {
-	// Implementation
+    // Implementation
 }
+
 ```
 
 ### CLI Command Documentation
@@ -111,7 +120,7 @@ func UploadFile(oid, localPath, remotePath string) error {
 //
 // Usage:
 //
-//	proton-git-lfs-tray login [--credential-provider PROVIDER]
+//    proton-git-lfs-tray login [--credential-provider PROVIDER]
 //
 // Flags:
 //   - --credential-provider: Credential provider to use (pass-cli or git-credential)
@@ -129,17 +138,18 @@ func UploadFile(oid, localPath, remotePath string) error {
 //
 // Example:
 //
-//	# Login with pass-cli (default)
-//	proton-git-lfs-tray login
+//    # Login with pass-cli (default)
+//    proton-git-lfs-tray login
 //
-//	# Login with git-credential
-//	proton-git-lfs-tray login --credential-provider git-credential
+//    # Login with git-credential
+//    proton-git-lfs-tray login --credential-provider git-credential
 //
 // The command verifies the credentials by calling proton-drive-cli's verify
 // command, which performs a lightweight API call to check authentication.
 func loginCommand(credentialProvider string) error {
-	// Implementation
+    // Implementation
 }
+
 ```
 
 ### Type/Struct Documentation
@@ -170,22 +180,23 @@ func loginCommand(credentialProvider string) error {
 //
 // Example:
 //
-//	status := StatusReport{
-//	    State:     "ok",
-//	    LastOid:   "abc123...",
-//	    LastOp:    "upload",
-//	    Timestamp: time.Now(),
-//	}
-//	err := WriteStatus(&status)
+//    status := StatusReport{
+//        State:     "ok",
+//        LastOid:   "abc123...",
+//        LastOp:    "upload",
+//        Timestamp: time.Now(),
+//    }
+//    err := WriteStatus(&status)
 type StatusReport struct {
-	State       string    `json:"state"`
-	LastOid     string    `json:"lastOid"`
-	LastOp      string    `json:"lastOp"`
-	Timestamp   time.Time `json:"timestamp"`
-	ErrorCode   string    `json:"errorCode,omitempty"`
-	ErrorDetail string    `json:"errorDetail,omitempty"`
-	RetryCount  int       `json:"retryCount,omitempty"`
+    State       string    `json:"state"`
+    LastOid     string    `json:"lastOid"`
+    LastOp      string    `json:"lastOp"`
+    Timestamp   time.Time `json:"timestamp"`
+    ErrorCode   string    `json:"errorCode,omitempty"`
+    ErrorDetail string    `json:"errorDetail,omitempty"`
+    RetryCount  int       `json:"retryCount,omitempty"`
 }
+
 ```
 
 ### Method Documentation
@@ -212,20 +223,21 @@ type StatusReport struct {
 //
 // Example:
 //
-//	breaker := NewCircuitBreaker("api-calls", CircuitBreakerOptions{
-//	    FailureThreshold: 3,
-//	    ResetTimeoutMs:   30000,
-//	})
+//    breaker := NewCircuitBreaker("api-calls", CircuitBreakerOptions{
+//        FailureThreshold: 3,
+//        ResetTimeoutMs:   30000,
+//    })
 //
-//	err := breaker.Execute(func() error {
-//	    return callAPI()
-//	})
-//	if err != nil {
-//	    // Circuit may be open or operation failed
-//	}
+//    err := breaker.Execute(func() error {
+//        return callAPI()
+//    })
+//    if err != nil {
+//        // Circuit may be open or operation failed
+//    }
 func (cb *CircuitBreaker) Execute(operation func() error) error {
-	// Implementation
+    // Implementation
 }
+
 ```
 
 ## Go Doc Best Practices
@@ -238,6 +250,7 @@ func (cb *CircuitBreaker) Execute(operation func() error) error {
 // This package handles environment variables, preferences, and status
 // reporting shared between the adapter and tray app.
 package config
+
 ```
 
 ### 2. Document Exported Items
@@ -246,13 +259,14 @@ package config
 // ✅ Good: Documented exported function
 // ValidateOID checks if the OID is a valid SHA-256 hash (64 hex characters).
 func ValidateOID(oid string) bool {
-	return len(oid) == 64 && isHex(oid)
+    return len(oid) == 64 && isHex(oid)
 }
 
 // ❌ Bad: Undocumented exported function
 func ValidateOID(oid string) bool {
-	return len(oid) == 64 && isHex(oid)
+    return len(oid) == 64 && isHex(oid)
 }
+
 ```
 
 ### 3. Use Complete Sentences
@@ -265,6 +279,7 @@ func WriteStatus(status *StatusReport) error
 // ❌ Bad: Incomplete
 // Write status
 func WriteStatus(status *StatusReport) error
+
 ```
 
 ### 4. Include Examples
@@ -274,14 +289,15 @@ func WriteStatus(status *StatusReport) error
 //
 // Example:
 //
-//	ms, err := ParseTimeout("30s")
-//	// ms = 30000, err = nil
+//    ms, err := ParseTimeout("30s")
+//    // ms = 30000, err = nil
 //
-//	ms, err := ParseTimeout("invalid")
-//	// ms = 0, err = ErrInvalidTimeout
+//    ms, err := ParseTimeout("invalid")
+//    // ms = 0, err = ErrInvalidTimeout
 func ParseTimeout(s string) (int64, error) {
-	// Implementation
+    // Implementation
 }
+
 ```
 
 ### 5. Document Errors
@@ -294,8 +310,9 @@ func ParseTimeout(s string) (int64, error) {
 //   - File is not valid JSON (returns ErrInvalidJSON)
 //   - File has invalid permissions (returns ErrPermissionDenied)
 func LoadConfig() (*Config, error) {
-	// Implementation
+    // Implementation
 }
+
 ```
 
 ### 6. Use Sections for Long Docs
@@ -321,10 +338,11 @@ func LoadConfig() (*Config, error) {
 //
 // # Example
 //
-//	err := UploadFile("abc...", "/tmp/f", "/LFS/ab/c1/abc...")
+//    err := UploadFile("abc...", "/tmp/f", "/LFS/ab/c1/abc...")
 func UploadFile(oid, localPath, remotePath string) error {
-	// Implementation
+    // Implementation
 }
+
 ```
 
 ## Documentation Priority Targets
@@ -332,6 +350,7 @@ func UploadFile(oid, localPath, remotePath string) error {
 ### 1. CLI Commands (Highest Priority)
 
 `cmd/tray/cli.go`:
+
 - `loginCommand`
 - `logoutCommand`
 - `statusCommand`
@@ -341,6 +360,7 @@ func UploadFile(oid, localPath, remotePath string) error {
 ### 2. Main Adapter Functions
 
 `cmd/adapter/main.go`:
+
 - `main` (package comment)
 - `handleMessage`
 - `handleInitMessage`
@@ -351,6 +371,7 @@ func UploadFile(oid, localPath, remotePath string) error {
 ### 3. Backend Interface
 
 `cmd/adapter/backend.go`:
+
 - `Backend` interface
 - `NewLocalBackend`
 - `NewDriveCLIBackend`
@@ -361,6 +382,7 @@ func UploadFile(oid, localPath, remotePath string) error {
 ### 4. Configuration
 
 `internal/config/`:
+
 - `config.go`: All exported functions
 - `status.go`: `StatusReport`, `WriteStatus`, `ReadStatus`
 - `prefs.go`: `Preferences`, `LoadPrefs`, `SavePrefs`
@@ -368,6 +390,7 @@ func UploadFile(oid, localPath, remotePath string) error {
 ### 5. System Tray
 
 `cmd/tray/`:
+
 - `menu.go`: Menu structure functions
 - `connect.go`: Connect flow
 - `status.go`: Status polling
@@ -409,17 +432,22 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
+
         with:
           go-version: '1.25'
           cache: true
 
       # Generate documentation
+
       - name: Install pkgsite
+
         run: go install golang.org/x/pkgsite/cmd/pkgsite@latest
 
       - name: Generate docs
+
         run: |
           mkdir -p docs/go-api
           pkgsite -http=:6060 &
@@ -429,6 +457,7 @@ jobs:
           killall pkgsite
 
       - uses: actions/upload-pages-artifact@v3
+
         with:
           path: docs/go-api
 
@@ -439,13 +468,17 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+
       - uses: actions/deploy-pages@v4
+
         id: deployment
+
 ```
 
 ### Alternative: godoc.org
 
 For public Go modules, documentation is automatically available at:
+
 - `https://pkg.go.dev/github.com/<username>/<repo>`
 
 Just push to GitHub and it will be indexed automatically.
@@ -459,6 +492,7 @@ Just push to GitHub and it will be indexed automatically.
 //
 // Valid OIDs must be exactly 64 hexadecimal characters (SHA-256 hash).
 var ErrInvalidOID = errors.New("invalid OID format")
+
 ```
 
 ### Constant
@@ -468,6 +502,7 @@ var ErrInvalidOID = errors.New("invalid OID format")
 // operations allowed. Operations beyond this limit will wait for an
 // available slot.
 const MaxConcurrentOperations = 10
+
 ```
 
 ### Interface
@@ -481,22 +516,23 @@ const MaxConcurrentOperations = 10
 //
 // All methods must be safe for concurrent use.
 type Backend interface {
-	// PutOID stores an object by its OID.
-	//
-	// Returns an error if the operation fails. The error is classified
-	// as retryable or permanent via the BackendError type.
-	PutOID(oid, localPath string) error
+    // PutOID stores an object by its OID.
+    //
+    // Returns an error if the operation fails. The error is classified
+    // as retryable or permanent via the BackendError type.
+    PutOID(oid, localPath string) error
 
-	// GetOID retrieves an object by its OID.
-	//
-	// Returns an error if the object doesn't exist or retrieval fails.
-	GetOID(oid, localPath string) error
+    // GetOID retrieves an object by its OID.
+    //
+    // Returns an error if the object doesn't exist or retrieval fails.
+    GetOID(oid, localPath string) error
 
-	// VerifyOID checks if an object exists.
-	//
-	// Returns nil if the object exists, or an error otherwise.
-	VerifyOID(oid string) error
+    // VerifyOID checks if an object exists.
+    //
+    // Returns nil if the object exists, or an error otherwise.
+    VerifyOID(oid string) error
 }
+
 ```
 
 ## Tools
@@ -504,38 +540,53 @@ type Backend interface {
 ### go doc
 
 ```bash
+
 # View package docs
+
 go doc ./cmd/adapter
 
 # View function docs
+
 go doc ./cmd/adapter.UploadFile
 
 # View all package members
+
 go doc -all ./cmd/adapter
 
 # View source
+
 go doc -src ./cmd/adapter.UploadFile
+
 ```
 
 ### pkgsite (Modern)
 
 ```bash
+
 # Install
+
 go install golang.org/x/pkgsite/cmd/pkgsite@latest
 
 # Serve locally
+
 pkgsite -open .
+
 ```
 
 ### godoc (Legacy)
 
 ```bash
+
 # Install
+
 go install golang.org/x/tools/cmd/godoc@latest
 
 # Serve locally
+
 godoc -http=:6060
+
 # Open http://localhost:6060
+
 ```
 
 ## Validation
@@ -543,14 +594,19 @@ godoc -http=:6060
 Check documentation quality:
 
 ```bash
+
 # Lint with golangci-lint (includes doc checks)
+
 golangci-lint run
 
 # Check for missing docs
+
 go vet ./...
 
 # Test examples
+
 go test -run Example
+
 ```
 
 ## References

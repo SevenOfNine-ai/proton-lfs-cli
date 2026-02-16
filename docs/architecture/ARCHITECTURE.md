@@ -41,14 +41,14 @@ graph TB
         PassCLI[Proton Pass CLI<br/>Credential Storage]
     end
 
-    Git -->|stdin/stdout| Main
+    Git --> | stdin/stdout | Main
     Main --> Protocol
     Protocol --> Backend
 
-    Backend -->|PROTON_LFS_BACKEND=local| Local
-    Backend -->|PROTON_LFS_BACKEND=sdk| DriveCLI
+    Backend --> | PROTON_LFS_BACKEND=local | Local
+    Backend --> | PROTON_LFS_BACKEND=sdk | DriveCLI
 
-    DriveCLI -->|spawn subprocess| Bridge
+    DriveCLI --> | spawn subprocess | Bridge
     Bridge --> Auth
     Bridge --> Drive
     Drive --> API
@@ -56,11 +56,12 @@ graph TB
 
     Auth -.credentials.-> PassCLI
 
-    Tray -->|read| Config
-    Tray -->|poll every 5s| Status
-    Protocol -->|write| Status
+    Tray --> | read | Config
+    Tray --> | poll every 5s | Status
+    Protocol --> | write | Status
 
-    Main -->|write| Status
+    Main --> | write | Status
+
 ```
 
 ## Component Architecture
@@ -90,15 +91,18 @@ graph LR
     Config --> ConfigPkg
     Protocol --> StatusPkg
     Bridge --> StatusPkg
+
 ```
 
 **Key Files:**
+
 - `main.go`: CLI entry point, message loop, status reporting
 - `backend.go`: Storage abstraction (Local vs DriveCLI backends)
 - `bridge.go`: Subprocess client for proton-drive-cli bridge protocol
 - `config_constants.go`: Thin wrapper delegating to internal/config
 
 **Features:**
+
 - ✅ Git LFS custom transfer protocol (v3)
 - ✅ Concurrent operation limiting (max 10, 5-minute timeout)
 - ✅ Atomic status updates
@@ -144,9 +148,11 @@ graph TB
     Creds --> DriveCLI
     CLI --> DriveCLI
     CLI --> Adapter
+
 ```
 
 **Key Files:**
+
 - `main.go`: Entry point, version flag, PATH augmentation for macOS
 - `menu.go`: Menu structure, credential provider toggle, LFS registration
 - `connect.go`: "Connect to Proton" flow (unified for all providers)
@@ -155,6 +161,7 @@ graph TB
 - `cli.go`: CLI subcommand handlers (login, logout, status, register)
 
 **Features:**
+
 - ✅ Native menu bar integration (macOS/Linux)
 - ✅ Real-time status updates (poll every 5s)
 - ✅ Credential provider switching (pass-cli ↔ git-credential)
@@ -181,24 +188,28 @@ graph LR
         TrayWrite[Write Config]
     end
 
-    ConfigFile -->|read| AdapterRead
-    ConfigFile -->|read/write| TrayRead
-    TrayRead -->|write| ConfigFile
+    ConfigFile --> | read | AdapterRead
+    ConfigFile --> | read/write | TrayRead
+    TrayRead --> | write | ConfigFile
 
-    StatusFile -->|read| TrayRead
-    StatusFile -->|write| AdapterWrite
+    StatusFile --> | read | TrayRead
+    StatusFile --> | write | AdapterWrite
+
 ```
 
 **Configuration Schema:**
+
 ```json
 {
   "credentialProvider": "pass-cli",
   "autostart": true,
   "enableNotifications": true
 }
+
 ```
 
 **Status Schema:**
+
 ```json
 {
   "state": "ok",
@@ -209,9 +220,11 @@ graph LR
   "errorDetail": "",
   "retryCount": 0
 }
+
 ```
 
 **Status States:**
+
 - `idle` - No operations in progress (grey icon)
 - `ok` - Last operation succeeded (green icon)
 - `error` - Last operation failed (red icon)
@@ -255,6 +268,7 @@ sequenceDiagram
     Tray->>Status: Poll (every 5s)
     Tray->>Tray: Update icon to green
     Adapter->>Git: Batch complete
+
 ```
 
 ### 2. Credential Resolution Flow
@@ -292,6 +306,7 @@ sequenceDiagram
     Bridge->>Provider: Resolve credentials
     Provider-->>Bridge: {username, password}
     Bridge->>Bridge: Authenticate with Proton
+
 ```
 
 ### 3. Status Polling & UI Updates
@@ -324,6 +339,7 @@ sequenceDiagram
             Tray->>UI: Tooltip: "Rate limited"
         end
     end
+
 ```
 
 ## Protocol Implementation
@@ -350,6 +366,7 @@ stateDiagram-v2
         Max 10 simultaneous
         5-minute timeout
     end note
+
 ```
 
 **Message Format:**
@@ -371,6 +388,7 @@ stateDiagram-v2
   "path": "/path/to/file",
   "error": null
 }
+
 ```
 
 ### Bridge Protocol (Adapter ↔ proton-drive-cli)
@@ -392,6 +410,7 @@ stateDiagram-v2
   "error": null,
   "code": null
 }
+
 ```
 
 ## Storage Layout
@@ -399,6 +418,7 @@ stateDiagram-v2
 ### Remote Storage Structure (Proton Drive)
 
 ```
+
 /LFS/
 ├── ab/
 │   ├── c1/
@@ -409,9 +429,11 @@ stateDiagram-v2
 │   └── 23/
 │       └── 012345... (64-char OID)
 ...
+
 ```
 
 **Path Mapping:**
+
 - OID: `abc123456789...` (64 hex chars)
 - Remote Path: `/LFS/[0:2]/[2:4]/[full OID]`
 - Example: `/LFS/ab/c1/abc123456789...`
@@ -421,6 +443,7 @@ stateDiagram-v2
 ### Local Storage Structure
 
 ```
+
 ~/.proton-git-lfs/
 ├── config.json              # Tray app preferences
 ├── status.json              # Runtime status (polled by tray)
@@ -434,6 +457,7 @@ stateDiagram-v2
 
 /tmp/
 └── lfs-{oid}-*              # Temporary files during transfer
+
 ```
 
 ## Error Handling & Classification
@@ -447,15 +471,15 @@ flowchart TD
     Error --> Parse[Parse JSON Response]
     Parse --> Code{Error Code?}
 
-    Code -->|RATE_LIMIT| RateLimit[ErrorCode: rate_limited<br/>Retryable: false<br/>Temporary: true]
-    Code -->|CAPTCHA_REQUIRED| Captcha[ErrorCode: captcha_required<br/>Retryable: false<br/>Temporary: false]
-    Code -->|AUTH_FAILED| Auth[ErrorCode: auth_required<br/>Retryable: false<br/>Temporary: false]
-    Code -->|407| HTTP407[Map to CAPTCHA<br/>Retryable: false]
-    Code -->|429| HTTP429[Map to RATE_LIMIT<br/>Retryable: false]
-    Code -->|401/403| HTTP401[Map to AUTH<br/>Retryable: false]
-    Code -->|404| HTTP404[ErrorCode: not_found<br/>Retryable: false]
-    Code -->|5xx| HTTP5xx[ErrorCode: server_error<br/>Retryable: true<br/>Temporary: true]
-    Code -->|Other| Generic[ErrorCode: unknown<br/>Retryable: false]
+    Code --> | RATE_LIMIT | RateLimit[ErrorCode: rate_limited<br/>Retryable: false<br/>Temporary: true]
+    Code --> | CAPTCHA_REQUIRED | Captcha[ErrorCode: captcha_required<br/>Retryable: false<br/>Temporary: false]
+    Code --> | AUTH_FAILED | Auth[ErrorCode: auth_required<br/>Retryable: false<br/>Temporary: false]
+    Code --> | 407 | HTTP407[Map to CAPTCHA<br/>Retryable: false]
+    Code --> | 429 | HTTP429[Map to RATE_LIMIT<br/>Retryable: false]
+    Code --> | 401/403 | HTTP401[Map to AUTH<br/>Retryable: false]
+    Code --> | 404 | HTTP404[ErrorCode: not_found<br/>Retryable: false]
+    Code --> | 5xx | HTTP5xx[ErrorCode: server_error<br/>Retryable: true<br/>Temporary: true]
+    Code --> | Other | Generic[ErrorCode: unknown<br/>Retryable: false]
 
     RateLimit --> Status[Write to status.json]
     Captcha --> Status
@@ -469,6 +493,7 @@ flowchart TD
 
     Status --> Tray[Tray App Reads]
     Tray --> UI[Update Icon & Tooltip]
+
 ```
 
 ### Error Response Schema
@@ -482,9 +507,11 @@ type BackendError struct {
     Retryable bool      // Can retry operation?
     Temporary bool      // Is error transient?
 }
+
 ```
 
 **Error Codes:**
+
 - `network_failure` - Network/connection errors (retryable, temporary)
 - `auth_required` - Authentication needed (not retryable)
 - `rate_limited` - Rate limit active (not retryable, temporary)
@@ -519,10 +546,10 @@ graph TB
         OpN[Download OID N]
     end
 
-    Queue -->|acquire| Slot1
-    Queue -->|acquire| Slot2
-    Queue -->|acquire| Slot3
-    Queue -->|acquire| SlotN
+    Queue --> | acquire | Slot1
+    Queue --> | acquire | Slot2
+    Queue --> | acquire | Slot3
+    Queue --> | acquire | SlotN
 
     Slot1 --> Op1
     Slot2 --> Op2
@@ -534,13 +561,15 @@ graph TB
     Op3 -.5-min timeout.-> Slot3
     OpN -.5-min timeout.-> SlotN
 
-    Op1 -->|release| Slot1
-    Op2 -->|release| Slot2
-    Op3 -->|release| Slot3
-    OpN -->|release| SlotN
+    Op1 --> | release | Slot1
+    Op2 --> | release | Slot2
+    Op3 --> | release | Slot3
+    OpN --> | release | SlotN
+
 ```
 
 **Configuration:**
+
 - **Max concurrent operations**: 10 (non-blocking semaphore)
 - **Operation timeout**: 5 minutes
 - **Behavior**: New operations wait if all slots busy
@@ -574,15 +603,17 @@ flowchart LR
     User -.store via pass-cli.-> PassVault
     User -.store via git credential.-> Keychain
 
-    Adapter -->|{credentialProvider}| Bridge
+    Adapter --> | {credentialProvider} | Bridge
     Bridge -.pass-cli mode.-> PassVault
     Bridge -.git-credential mode.-> Keychain
 
     Bridge --> Auth
     Auth --> ProtonAPI[Proton API<br/>SRP Authentication]
+
 ```
 
 **Security Principles:**
+
 1. ✅ **Adapter never sees credentials**: Only passes provider name
 2. ✅ **Credentials in stdin only**: Never in env vars or CLI args
 3. ✅ **Environment allowlist**: Only safe vars passed to subprocess
@@ -609,6 +640,7 @@ func isValidOID(oid string) bool {
 func isValidPath(path string) bool {
     return !strings.Contains(path, "..")
 }
+
 ```
 
 ## Build & Deployment
@@ -659,21 +691,26 @@ flowchart LR
 
     Bundle --> macOSApp
     Bundle --> LinuxTar
+
 ```
 
 **Build Commands:**
+
 ```bash
 make build          # Build Go adapter
 make build-tray     # Build tray app (requires CGO)
 make build-sea      # Build proton-drive-cli SEA
 make build-bundle   # Build all components + bundle
 make install        # Install bundle to system
+
 ```
 
 **Bundle Structure:**
 
 **macOS:**
+
 ```
+
 ProtonGitLFS.app/
 └── Contents/
     ├── MacOS/
@@ -681,10 +718,13 @@ ProtonGitLFS.app/
     │   ├── git-lfs-proton-adapter
     │   └── proton-drive-cli     # SEA executable
     └── Info.plist
+
 ```
 
 **Linux:**
+
 ```
+
 proton-git-lfs/
 ├── bin/
 │   ├── proton-git-lfs-tray
@@ -695,6 +735,7 @@ proton-git-lfs/
     │   └── proton-git-lfs.desktop
     └── icons/
         └── proton-git-lfs.png
+
 ```
 
 ### Release Pipeline
@@ -722,6 +763,7 @@ flowchart TB
     Checksums --> Release[GitHub Release<br/>Attach artifacts]
 
     Release --> Artifacts[Artifacts:<br/>- ProtonGitLFS-{os}-{arch}.{ext}<br/>- checksums.txt]
+
 ```
 
 ## Monitoring & Observability
@@ -729,14 +771,18 @@ flowchart TB
 ### Status Monitoring
 
 **Tray App Tooltip:**
+
 ```
+
 Status: ✓ OK
 Last: upload abc123...
 Time: 2 minutes ago
 Provider: Proton Pass
+
 ```
 
 **Status File Format:**
+
 ```json
 {
   "state": "ok",
@@ -747,16 +793,19 @@ Provider: Proton Pass
   "errorDetail": "",
   "retryCount": 0
 }
+
 ```
 
 ### Logging
 
 **Adapter Logging:**
+
 - Logs to stderr (visible in Git LFS output)
 - Log levels: DEBUG, INFO, WARN, ERROR
 - Structured logging with context (OID, operation, error)
 
 **Tray App Logging:**
+
 - Logs to stdout/stderr
 - macOS: visible in Console.app
 - Linux: visible in systemd journal
@@ -787,9 +836,11 @@ graph TB
     E2E -.depends on.-> IntSDK
     IntSDK -.depends on.-> UnitTS
     E2E -.depends on.-> UnitGo
+
 ```
 
 **Test Commands:**
+
 ```bash
 make test                           # Go unit tests
 make test-integration               # Git LFS protocol tests
@@ -798,9 +849,11 @@ make test-integration-failure-modes # Error handling tests
 make test-integration-credentials   # Credential security tests
 make test-e2e-mock                  # Mocked E2E
 make test-e2e-real                  # Real Proton API (requires auth)
+
 ```
 
 **Test Coverage:**
+
 - **Go Adapter**: Protocol handling, backend abstraction, error classification
 - **TypeScript CLI**: 43.96% overall (90%+ on testable modules)
 - **Integration**: Git LFS protocol compliance, credential flow, error handling
@@ -810,7 +863,7 @@ make test-e2e-real                  # Real Proton API (requires auth)
 ### Benchmarks
 
 | Operation | Cold Start | Warm (Cached) | Notes |
-|-----------|------------|---------------|-------|
+| ----------- | ------------ | --------------- | ------- |
 | Upload (1MB) | ~2-3s | ~1s | Includes encryption |
 | Download (1MB) | ~2-3s | ~1s | Includes decryption |
 | Auth (SRP) | ~3-5s | ~0.1s (session reuse) | 90% faster with reuse |
@@ -835,29 +888,35 @@ make test-e2e-real                  # Real Proton API (requires auth)
 ## Future Roadmap
 
 ### Phase 1: Stability (✅ Complete)
+
 - ✅ Rate-limit detection
 - ✅ Retry logic with exponential backoff
 - ✅ CAPTCHA handling
 - ✅ Enhanced status reporting
 
 ### Phase 2: Auth Optimization (✅ Complete)
+
 - ✅ Proactive token refresh
 - ✅ Session reuse
 - ✅ Cross-process coordination
 
 ### Phase 3: Performance (✅ Complete)
+
 - ✅ Change token caching
 - ✅ Upload deduplication
 
 ### Phase 4: Reliability (✅ Complete)
+
 - ✅ Circuit breaker
 - ✅ Configurable timeouts
 
 ### Phase 5: UX (Skipped)
+
 - ⏭️ Progress reporting (low ROI)
 - ⏭️ Desktop notifications (low ROI)
 
 ### Future Enhancements
+
 - 🔮 Chunked upload for large files (>100MB)
 - 🔮 Delta sync (only upload changed blocks)
 - 🔮 Offline queue (defer operations until online)
