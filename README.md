@@ -2,6 +2,8 @@
 
 Pre-alpha Git LFS custom transfer backend for Proton Drive.
 
+[![Documentation](https://img.shields.io/badge/docs-unified-blue)](https://sevenofnine-ai.github.io/proton-git-lfs/) [![Go Reference](https://pkg.go.dev/badge/github.com/SevenOfNine-ai/proton-git-lfs.svg)](https://pkg.go.dev/github.com/SevenOfNine-ai/proton-git-lfs) [![Tests](https://github.com/SevenOfNine-ai/proton-git-lfs/actions/workflows/test.yml/badge.svg)](https://github.com/SevenOfNine-ai/proton-git-lfs/actions/workflows/test.yml)
+
 ## Current State (2026-02-10)
 
 - Git LFS custom transfer adapter protocol is implemented and tested.
@@ -19,6 +21,13 @@ Pre-alpha Git LFS custom transfer backend for Proton Drive.
 - pass-cli (for credential management, or use git-credential)
 
 No .NET SDK required.
+
+## Documentation
+
+📚 **[Unified Documentation](https://sevenofnine-ai.github.io/proton-git-lfs/)** - Complete documentation site with:
+- **[Architecture & Guides](https://sevenofnine-ai.github.io/proton-git-lfs/guides/)** - Project overview, architecture, testing, security
+- **[Go API Reference](https://pkg.go.dev/github.com/SevenOfNine-ai/proton-git-lfs)** - Go package documentation
+- **[TypeScript Bridge API](https://sevenofnine-ai.github.io/proton-drive-cli/)** - proton-drive-cli documentation
 
 ## Usage
 
