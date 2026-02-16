@@ -79,11 +79,34 @@ func driveCLICandidates(exeDir string) []string {
 // This is needed because macOS .app bundles get a minimal PATH and pass-cli
 // is often installed in ~/.local/bin or via Homebrew.
 func discoverPassCLIBinary() string {
+	// First try exec.LookPath (uses current PATH)
 	path, err := exec.LookPath("pass-cli")
+	if err == nil {
+		return path
+	}
+
+	// Fall back to checking common install locations directly
+	home, err := os.UserHomeDir()
 	if err != nil {
 		return ""
 	}
-	return path
+
+	candidates := []string{
+		filepath.Join(home, ".local", "bin", "pass-cli"),
+		"/opt/homebrew/bin/pass-cli",
+		"/usr/local/bin/pass-cli",
+	}
+
+	for _, candidate := range candidates {
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			// Check if executable
+			if info.Mode()&0111 != 0 {
+				return candidate
+			}
+		}
+	}
+
+	return ""
 }
 
 const launchAgentLabel = "com.proton.git-lfs-tray"
