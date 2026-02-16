@@ -6,7 +6,7 @@ JS_PM ?= yarn
 COREPACK_HOME_DIR := $(PWD)/.cache/corepack
 
 ADAPTER_BIN := bin/git-lfs-proton-adapter
-TRAY_BIN := bin/proton-git-lfs-tray
+TRAY_BIN := bin/proton-lfs-tray
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS_VERSION := -X main.Version=$(VERSION)
 GIT_LFS_DIR := submodules/git-lfs
@@ -83,7 +83,7 @@ build-sea: build-drive-cli ## Build proton-drive-cli as a standalone Node.js SEA
 build-bundle: build-adapter build-tray build-sea ## Build all components into dist/ for packaging
 	@mkdir -p dist
 	@cp bin/git-lfs-proton-adapter dist/ 2>/dev/null || true
-	@cp bin/proton-git-lfs-tray dist/ 2>/dev/null || true
+	@cp bin/proton-lfs-tray dist/ 2>/dev/null || true
 	@cp bin/proton-drive-cli dist/ 2>/dev/null || true
 	@echo "Bundle assembled in dist/"
 
@@ -96,25 +96,25 @@ ifeq ($(shell uname -s),Darwin)
 
 install: build-bundle ## Install bundle (macOS: .app to /Applications, or set INSTALL_APP)
 	@mkdir -p "$(INSTALL_APP)/Contents/MacOS" "$(INSTALL_APP)/Contents/Helpers" "$(INSTALL_APP)/Contents/Resources"
-	@cp dist/proton-git-lfs-tray      "$(INSTALL_APP)/Contents/MacOS/proton-git-lfs-tray"
+	@cp dist/proton-lfs-tray      "$(INSTALL_APP)/Contents/MacOS/proton-lfs-tray"
 	@cp dist/git-lfs-proton-adapter   "$(INSTALL_APP)/Contents/Helpers/git-lfs-proton-adapter"
 	@cp dist/proton-drive-cli         "$(INSTALL_APP)/Contents/Helpers/proton-drive-cli"
-	@chmod +x "$(INSTALL_APP)/Contents/MacOS/proton-git-lfs-tray" \
+	@chmod +x "$(INSTALL_APP)/Contents/MacOS/proton-lfs-tray" \
 		"$(INSTALL_APP)/Contents/Helpers/git-lfs-proton-adapter" \
 		"$(INSTALL_APP)/Contents/Helpers/proton-drive-cli"
 	@bash scripts/ensure-info-plist.sh "$(INSTALL_APP)/Contents/Info.plist" "$(VERSION)"
 	@codesign --force --deep --sign - "$(INSTALL_APP)"
 	@xattr -dr com.apple.quarantine "$(INSTALL_APP)" 2>/dev/null || true
 	@mkdir -p "$(INSTALL_BIN)"
-	@ln -sf "$(INSTALL_APP)/Contents/MacOS/proton-git-lfs-tray" "$(INSTALL_BIN)/proton-git-lfs"
+	@ln -sf "$(INSTALL_APP)/Contents/MacOS/proton-lfs-tray" "$(INSTALL_BIN)/proton-lfs-cli"
 	@ln -sf "$(INSTALL_APP)/Contents/Helpers/proton-drive-cli" "$(INSTALL_BIN)/proton-drive-cli"
 	@echo "Installed to $(INSTALL_APP)"
-	@echo "CLI: $(INSTALL_BIN)/proton-git-lfs"
+	@echo "CLI: $(INSTALL_BIN)/proton-lfs-cli"
 	@echo "CLI: $(INSTALL_BIN)/proton-drive-cli"
 
 uninstall: ## Remove installed .app bundle
 	rm -rf "$(INSTALL_APP)"
-	rm -f "$(INSTALL_BIN)/proton-git-lfs" "$(INSTALL_BIN)/proton-drive-cli"
+	rm -f "$(INSTALL_BIN)/proton-lfs-cli" "$(INSTALL_BIN)/proton-drive-cli"
 	@echo "Removed $(INSTALL_APP)"
 
 else
@@ -126,7 +126,7 @@ install: build-bundle ## Install bundle (Linux: binaries to ~/.local/bin, or set
 		echo ""; \
 		echo "The built binaries are in dist/:"; \
 		echo "  dist/git-lfs-proton-adapter.exe"; \
-		echo "  dist/proton-git-lfs-tray.exe"; \
+		echo "  dist/proton-lfs-tray.exe"; \
 		echo "  dist/proton-drive-cli.exe"; \
 		echo ""; \
 		echo "Copy them to a directory on your PATH, or use the .zip from GitHub Releases."; \
@@ -134,13 +134,13 @@ install: build-bundle ## Install bundle (Linux: binaries to ~/.local/bin, or set
 		exit 1; \
 	fi
 	@mkdir -p "$(INSTALL_BIN)"
-	@cp dist/proton-git-lfs-tray    "$(INSTALL_BIN)/proton-git-lfs-tray"
+	@cp dist/proton-lfs-tray    "$(INSTALL_BIN)/proton-lfs-tray"
 	@cp dist/git-lfs-proton-adapter "$(INSTALL_BIN)/git-lfs-proton-adapter"
 	@cp dist/proton-drive-cli       "$(INSTALL_BIN)/proton-drive-cli"
-	@chmod +x "$(INSTALL_BIN)/proton-git-lfs-tray" \
+	@chmod +x "$(INSTALL_BIN)/proton-lfs-tray" \
 		"$(INSTALL_BIN)/proton-drive-cli" \
 		"$(INSTALL_BIN)/git-lfs-proton-adapter"
-	@ln -sf "$(INSTALL_BIN)/proton-git-lfs-tray" "$(INSTALL_BIN)/proton-git-lfs"
+	@ln -sf "$(INSTALL_BIN)/proton-lfs-tray" "$(INSTALL_BIN)/proton-lfs-cli"
 	@echo "Installed to $(INSTALL_BIN)"
 
 uninstall: ## Remove installed binaries
@@ -148,10 +148,10 @@ uninstall: ## Remove installed binaries
 		echo "Error: 'make uninstall' is not yet supported on Windows."; \
 		exit 1; \
 	fi
-	rm -f "$(INSTALL_BIN)/proton-git-lfs-tray" \
+	rm -f "$(INSTALL_BIN)/proton-lfs-tray" \
 		"$(INSTALL_BIN)/git-lfs-proton-adapter" \
 		"$(INSTALL_BIN)/proton-drive-cli" \
-		"$(INSTALL_BIN)/proton-git-lfs"
+		"$(INSTALL_BIN)/proton-lfs-cli"
 	@echo "Removed binaries from $(INSTALL_BIN)"
 
 endif

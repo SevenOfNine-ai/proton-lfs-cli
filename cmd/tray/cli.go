@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"proton-git-lfs/internal/config"
+	"proton-lfs-cli/internal/config"
 )
 
 // Function vars for testability — tests swap these to inject mocks.

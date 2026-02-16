@@ -1,8 +1,8 @@
-# Proton Git LFS Backend
+# Proton LFS CLI
 
-Pre-alpha Git LFS custom transfer backend for Proton Drive.
+End-to-end encrypted Git LFS backend for Proton Drive.
 
-[![Documentation](https://img.shields.io/badge/docs-unified-blue)](https://sevenofnine-ai.github.io/proton-git-lfs/) [![Go Reference](https://pkg.go.dev/badge/github.com/SevenOfNine-ai/proton-git-lfs.svg)](https://pkg.go.dev/github.com/SevenOfNine-ai/proton-git-lfs) [![Tests](https://github.com/SevenOfNine-ai/proton-git-lfs/actions/workflows/test.yml/badge.svg)](https://github.com/SevenOfNine-ai/proton-git-lfs/actions/workflows/test.yml)
+[![Documentation](https://img.shields.io/badge/docs-unified-blue)](https://sevenofnine-ai.github.io/proton-lfs-cli/) [![Go Reference](https://pkg.go.dev/badge/github.com/SevenOfNine-ai/proton-lfs-cli.svg)](https://pkg.go.dev/github.com/SevenOfNine-ai/proton-lfs-cli) [![Tests](https://github.com/SevenOfNine-ai/proton-lfs-cli/actions/workflows/test.yml/badge.svg)](https://github.com/SevenOfNine-ai/proton-lfs-cli/actions/workflows/test.yml)
 
 ## Current State (2026-02-10)
 
@@ -24,10 +24,10 @@ No .NET SDK required.
 
 ## Documentation
 
-📚 **[Unified Documentation](https://sevenofnine-ai.github.io/proton-git-lfs/)** - Complete documentation site with:
+📚 **[Unified Documentation](https://sevenofnine-ai.github.io/proton-lfs-cli/)** - Complete documentation site with:
 
-- **[Architecture & Guides](https://sevenofnine-ai.github.io/proton-git-lfs/guides/)** - Project overview, architecture, testing, security
-- **[Go API Reference](https://pkg.go.dev/github.com/SevenOfNine-ai/proton-git-lfs)** - Go package documentation
+- **[Architecture & Guides](https://sevenofnine-ai.github.io/proton-lfs-cli/guides/)** - Project overview, architecture, testing, security
+- **[Go API Reference](https://pkg.go.dev/github.com/SevenOfNine-ai/proton-lfs-cli)** - Go package documentation
 - **[TypeScript Bridge API](https://sevenofnine-ai.github.io/proton-drive-cli/)** - proton-drive-cli documentation
 
 ## Usage
@@ -119,7 +119,7 @@ pass-cli login
 eval "$(./scripts/export-pass-env.sh)"
 ```
 
-Canonical reference root is `pass://Personal/Proton Git LFS`.
+Canonical reference root is `pass://Personal/Proton LFS`.
 
 ## Repository Layout
 

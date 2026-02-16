@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"proton-git-lfs/internal/config"
+	"proton-lfs-cli/internal/config"
 )
 
 const (

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	"proton-git-lfs/internal/config"
+	"proton-lfs-cli/internal/config"
 )
 
 // connectToProton runs the unified tray Connect flow for any credential provider:

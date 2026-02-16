@@ -10,7 +10,7 @@ import (
 
 	"fyne.io/systray"
 
-	"proton-git-lfs/internal/config"
+	"proton-lfs-cli/internal/config"
 )
 
 const pollInterval = 5 * time.Second

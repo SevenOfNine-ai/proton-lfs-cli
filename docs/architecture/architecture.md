@@ -1,8 +1,8 @@
-# Proton Git LFS Architecture
+# Proton LFS Architecture
 
 ## Overview
 
-Proton Git LFS is a custom Git LFS transfer adapter that provides encrypted storage for Git LFS objects on Proton Drive. It consists of three main components: a Go adapter that implements the Git LFS custom transfer protocol, a system tray application for user interaction, and the proton-drive-cli bridge for Proton Drive integration.
+Proton LFS is a custom Git LFS transfer adapter that provides encrypted storage for Git LFS objects on Proton Drive. It consists of three main components: a Go adapter that implements the Git LFS custom transfer protocol, a system tray application for user interaction, and the proton-drive-cli bridge for Proton Drive integration.
 
 ## System Architecture
 
@@ -32,7 +32,7 @@ graph TB
     end
 
     subgraph "Configuration & Status"
-        Config[config.json<br/>~/.proton-git-lfs/]
+        Config[config.json<br/>~/.proton-lfs-cli/]
         Status[status.json<br/>Polled every 5s]
     end
 
@@ -173,7 +173,7 @@ graph TB
 
 ```mermaid
 graph LR
-    subgraph "~/.proton-git-lfs/"
+    subgraph "~/.proton-lfs-cli/"
         ConfigFile[config.json<br/>Preferences]
         StatusFile[status.json<br/>Runtime State]
     end
@@ -444,7 +444,7 @@ stateDiagram-v2
 
 ```
 
-~/.proton-git-lfs/
+~/.proton-lfs-cli/
 ├── config.json              # Tray app preferences
 ├── status.json              # Runtime status (polled by tray)
 └── logs/                    # Optional logs
@@ -664,14 +664,14 @@ flowchart LR
 
     subgraph "Artifacts"
         AdapterBin[git-lfs-proton-adapter]
-        TrayBin[proton-git-lfs-tray]
+        TrayBin[proton-lfs-cli-tray]
         CLIBin[proton-drive-cli<br/>SEA executable]
     end
 
     subgraph "Distribution"
         Bundle[Bundle Script<br/>scripts/package-bundle.sh]
         macOSApp[ProtonGitLFS.app]
-        LinuxTar[proton-git-lfs.tar.gz]
+        LinuxTar[proton-lfs-cli.tar.gz]
     end
 
     SrcGo --> GoMod
@@ -714,7 +714,7 @@ make install        # Install bundle to system
 ProtonGitLFS.app/
 └── Contents/
     ├── MacOS/
-    │   ├── proton-git-lfs-tray  # Tray app binary
+    │   ├── proton-lfs-cli-tray  # Tray app binary
     │   ├── git-lfs-proton-adapter
     │   └── proton-drive-cli     # SEA executable
     └── Info.plist
@@ -725,16 +725,16 @@ ProtonGitLFS.app/
 
 ```
 
-proton-git-lfs/
+proton-lfs-cli/
 ├── bin/
-│   ├── proton-git-lfs-tray
+│   ├── proton-lfs-cli-tray
 │   ├── git-lfs-proton-adapter
 │   └── proton-drive-cli
 └── share/
     ├── applications/
-    │   └── proton-git-lfs.desktop
+    │   └── proton-lfs-cli.desktop
     └── icons/
-        └── proton-git-lfs.png
+        └── proton-lfs-cli.png
 
 ```
 
