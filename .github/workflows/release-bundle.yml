@@ -241,13 +241,13 @@ jobs:
         uses: orhun/git-cliff-action@v4
         with:
           config: cliff.toml
-          args: --latest --strip header
+          args: --latest --strip header --output CHANGELOG.md
         env:
           GITHUB_REPO: ${{ github.repository }}
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          body: ${{ steps.changelog.outputs.content }}
+          body_path: CHANGELOG.md
           files: |
             dist/*
