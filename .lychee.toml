@@ -10,8 +10,10 @@ exclude = [
   "^http://localhost(:\\d+)?",
   "^http://127\\.0\\.0\\.1(:\\d+)?",
   "^http://0\\.0\\.0\\.0(:\\d+)?",
-  # Exclude until GitHub Pages is deployed
-  "^https://sevenofnine-ai\\.github\\.io/proton-lfs-cli/guides/",
-  # Exclude until pkg.go.dev indexes the repo
-  "^https://pkg\\.go\\.dev/github\\.com/SevenOfNine-ai/proton-lfs-cli"
+  # Exclude until GitHub Pages is deployed and repo renamed
+  "^https://sevenofnine-ai\\.github\\.io/proton-lfs-cli",
+  # Exclude until pkg.go.dev indexes the repo and repo renamed
+  "^https://pkg\\.go\\.dev/github\\.com/SevenOfNine-ai/proton-lfs-cli",
+  # Exclude until GitHub repo is renamed from proton-git-lfs to proton-lfs-cli
+  "^https://github\\.com/SevenOfNine-ai/proton-lfs-cli/actions"
 ]
